@@ -11,3 +11,18 @@ master
      +- feature/hasher
          +- feature/hasher/debug
 ```
+
+Plan for merge
+
+```
+feature/structure/graph
+    -> feature/structure
+feature/structure/buffer
+    -> feature/structure
+feature/hasher/debug
+    -> *
+feature/structure
+    -> develop
+feature/hasher
+    -> develop
+```
