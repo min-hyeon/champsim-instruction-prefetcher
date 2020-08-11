@@ -17,7 +17,7 @@
     #define GRAPH_DEBUG_PRINT(expr)
 #endif
 
-namespace gtl {
+namespace GTL {
 
     template <typename NodeTraits, typename EdgeTraits>
     class NodeBase;
@@ -39,6 +39,8 @@ namespace gtl {
     struct Directed {};
 
     /**
+     * 1. Type qualifiers
+     * 
      * Each of node and edge instances is divided into three parts;
      * connnector, storage, and name.
      * 
@@ -64,18 +66,44 @@ namespace gtl {
      * some comparison function object type.
      */
 
+    // [Type qualifiers] <\begin>
+    // 
+
+    // Wrapper class that acts as a type-holder of a node's name infos.
+    // <\code>
+    //     Name<name-type-of-node/edge, comparator-for-name-type>;
+    // <\endcode>
+    // Notice that "comparator-for-name-type" is std less functional
+    // unit by default, so you must specify the comparator type if you
+    // use some other "name-type-of-node/edge" that is not supported
+    // by std less unit.
     template <typename Key, typename Compare = std::less<Key>>
     struct Name {
         typedef Key        KeyType;
         typedef Compare    KeyCompare;
     };
 
+    // Wrapper class that acts as a type-holder of a node's inner
+    // types; key(name), key comparator, and user-defined storage type.
+    // <\code>
+    //     NodeTraits<
+    //         Name<name-type-of-node, comparator-for-name-type>,
+    //         user-defined-storage-type>;
+    // <\endcode>
     template <typename Name, typename Storage>
     struct NodeTraits {
         typedef typename Name::KeyType      KeyType;
         typedef typename Name::KeyCompare   KeyCompare;
         typedef Storage                     StorageType;
     };
+
+    // Wrapper class that acts as a type-holder of a edge's inner
+    // types; key(name), key comparator, and user-defined storage type.
+    // <\code>
+    //     EdgeTraits<
+    //         Name<name-type-of-edge, comparator-for-name-type>,
+    //         user-defined-storage-type>;
+    // <\endcode>
     template <typename Name, typename Storage>
     struct EdgeTraits {
         typedef typename Name::KeyType      KeyType;
@@ -83,8 +111,45 @@ namespace gtl {
         typedef Storage                     StorageType;
     };
 
-//namespace internal {
+    //
+    // [Type qualifiers] <\end>
 
+    /**
+     * 2. Class hierarchy of node classes. (Inheritance)
+     * 
+     * Node<..., Undirected> and Node<..., Directed> each inherits 
+     * NodeBase<...> class, which holds "name" and "storage" instances
+     * and useful typedefs for "connectors". The connectors are
+     * implemented in the derived class, because they act differently
+     * based on whether the graph is directed or not.
+     * 
+     * - LinkToMap: Because all the pointers to each node objects are
+     *     maintained in the stl map structure with the "name" as key,
+     *     we need to "iterator" to the position of its node in the map
+     *     for constant-time elimination.
+     *     Notice that stl map provides some API for removing an entry;
+     *     "std::map::erase(position)" where position is of type iterator.
+     * 
+     * - IncidentEdges: A node object "v" holds a collection I(v),
+     *     called the incidence collection of v, whose elements store
+     *     pointers to the edges incident on "v".
+     * 
+     * Note that all pointer types in NodeBase<...> and its derived class
+     * are of type shared_ptr<"NodeBase"> or shared_ptr<"EdgeBase">,
+     * which means that it is needed to down-cast this pointer for
+     * further use and access.
+     * 
+     * Reference)
+     * For more detailed information on the whole graph structure, see:
+     * 
+     * Michael T. Goodrich, Roberto Tamassia, and David M. Mount. (2009).
+     * "Data Structures and Algorithms in C++." Wiley Publishing.
+     */
+
+    // [Internal node types] <\begin>
+    // 
+
+    // Commonly used components
     template <typename NodeTraits, typename EdgeTraits>
     class NodeBase {
         template <typename, typename, typename> friend class Graph;
@@ -128,6 +193,7 @@ namespace gtl {
         : public NodeBase<NodeTraits, EdgeTraits>
     {};
 
+    // Commonly used components + "Undirected" connectors
     template <typename NodeTraits, typename EdgeTraits>
     class Node<NodeTraits, EdgeTraits, Undirected>
         : public NodeBase<NodeTraits, EdgeTraits>
@@ -136,9 +202,6 @@ namespace gtl {
     public:
         using Base = NodeBase<NodeTraits, EdgeTraits>;
     private:
-        // A node object v holds a reference to a collection I(v),
-        // called the incidence collection of v, whose elements store
-        // references to the edges incident on v.
         typename Base::IncidentEdges incidents_;
     public:
         Node(const typename Base::NameType& name, const typename Base::StorageType& storage)
@@ -150,6 +213,7 @@ namespace gtl {
         }
     };
 
+    // Commonly used components + "Directed" connectors
     template <typename NodeTraits, typename EdgeTraits>
     class Node<NodeTraits, EdgeTraits, Directed>
         : public NodeBase<NodeTraits, EdgeTraits>
@@ -158,9 +222,6 @@ namespace gtl {
     public:
         using Base = NodeBase<NodeTraits, EdgeTraits>;
     private:
-        // A node object v holds a reference to a collection I(v),
-        // called the incidence collection of v, whose elements store
-        // references to the edges incident on v.
         typename Base::IncidentEdges outgoings_;
         typename Base::IncidentEdges incomings_;
     public:
@@ -173,6 +234,53 @@ namespace gtl {
         }
     };
 
+    //
+    // [Internal node types] <\end>
+
+    /**
+     * 3. Class hierarchy of edge classes. (Inheritance)
+     * 
+     * Edge<..., Undirected> and Edge<..., Directed> each inherits 
+     * EdgeBase<...> class, which holds "name" and "storage" instances
+     * and useful typedefs for "connectors". The connectors are
+     * implemented in the derived class, because they act differently
+     * based on whether the graph is directed or not.
+     * 
+     * - LinkToNode: All edges, either directed or not, have two end 
+     *     points. Therefore, each edge instance maintains two pointers
+     *     to its two end nodes.
+     * 
+     * - LinkToMap: Because all the pointers to each edge objects are
+     *     maintained in the stl map structure with the "name" as key,
+     *     we need to "iterator" to the position of its node in the map
+     *     for constant-time elimination.
+     *     Notice that stl map provides some API for removing an entry;
+     *     "std::map::erase(position)" where position is of type iterator.
+     * 
+     * - IncidentEdgesPtr: Recall that a node object "v" holds a
+     *     collection I(v), called the incidence collection of v, whose
+     *     elements store pointers to the edges incident on "v".
+     *     Similar to LinkToMap, if edge "e" has two end nodes "u1", "u2",
+     *     then the instance of "e" maintains its position (iterator)
+     *     in the I(u1) and I(u2), respectively, for constant-time
+     *     elimination.
+     * 
+     * Note that all pointer types in EdgeBase<...> and its derived class
+     * are of type shared_ptr<"EdgeBase"> or shared_ptr<"EdgeBase">,
+     * which means that it is needed to down-cast this pointer for
+     * further use and access.
+     * 
+     * Reference)
+     * For more detailed information on the whole graph structure, see:
+     * 
+     * Michael T. Goodrich, Roberto Tamassia, and David M. Mount. (2009).
+     * "Data Structures and Algorithms in C++." Wiley Publishing.
+     */
+
+    // [Internal edge types] <\begin>
+    //
+
+    // Commonly used components
     template <typename NodeTraits, typename EdgeTraits>
     class EdgeBase {
         template <typename, typename, typename> friend class Graph;
@@ -218,6 +326,7 @@ namespace gtl {
         : public EdgeBase<NodeTraits, EdgeTraits>
     {};
 
+    // Commonly used components + "Undirected" connectors
     template <typename NodeTraits, typename EdgeTraits>
     class Edge<NodeTraits, EdgeTraits, Undirected>
         : public EdgeBase<NodeTraits, EdgeTraits>
@@ -242,6 +351,7 @@ namespace gtl {
         }
     };
 
+    // Commonly used components + "Directed" connectors
     template <typename NodeTraits, typename EdgeTraits>
     class Edge<NodeTraits, EdgeTraits, Directed>
         : public EdgeBase<NodeTraits, EdgeTraits>
@@ -265,6 +375,9 @@ namespace gtl {
             )
         }
     };
+
+    //
+    // [Internal node types] <\end>
 
 //}   // namespace internal
 
