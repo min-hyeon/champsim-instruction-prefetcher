@@ -25,12 +25,13 @@ using namespace std;
 //#define EXEC_LATENCY 0
 //#define DECODE_LATENCY 2
 
-#define STA_SIZE (ROB_SIZE*NUM_INSTR_DESTINATIONS_SPARC)
+#define STA_SIZE (ROB_SIZE * NUM_INSTR_DESTINATIONS_SPARC)
 
 extern uint32_t SCHEDULING_LATENCY, EXEC_LATENCY, DECODE_LATENCY;
 
 // cpu
-class O3_CPU {
+class O3_CPU
+{
 public:
     uint32_t cpu;
 
@@ -53,10 +54,10 @@ public:
     uint32_t next_ITLB_fetch;
 
     // reorder buffer, load/store queue, register file
-    CORE_BUFFER IFETCH_BUFFER{ "IFETCH_BUFFER", FETCH_WIDTH*2 };
-    CORE_BUFFER DECODE_BUFFER{ "DECODE_BUFFER", DECODE_WIDTH*3 };
-    CORE_BUFFER ROB{ "ROB", ROB_SIZE };
-    LOAD_STORE_QUEUE LQ{ "LQ", LQ_SIZE }, SQ{ "SQ", SQ_SIZE };
+    CORE_BUFFER IFETCH_BUFFER{"IFETCH_BUFFER", FETCH_WIDTH * 2};
+    CORE_BUFFER DECODE_BUFFER{"DECODE_BUFFER", DECODE_WIDTH * 3};
+    CORE_BUFFER ROB{"ROB", ROB_SIZE};
+    LOAD_STORE_QUEUE LQ{"LQ", LQ_SIZE}, SQ{"SQ", SQ_SIZE};
 
     // store array, this structure is required to properly handle store instructions
     uint64_t STA[STA_SIZE], STA_head, STA_tail;
@@ -75,25 +76,26 @@ public:
 
     // branch
     int branch_mispredict_stall_fetch; // flag that says that we should stall because a branch prediction was wrong
-    int mispredicted_branch_iw_index; // index in the instruction window of the mispredicted branch.  fetch resumes after the instruction at this index executes
-    uint8_t  fetch_stall;
+    int mispredicted_branch_iw_index;  // index in the instruction window of the mispredicted branch.  fetch resumes after the instruction at this index executes
+    uint8_t fetch_stall;
     uint64_t fetch_resume_cycle;
     uint64_t num_branch, branch_mispredictions;
     uint64_t total_rob_occupancy_at_branch_mispredict;
     uint64_t total_branch_types[8];
 
     // TLBs and caches
-    CACHE ITLB{ "ITLB", ITLB_SET, ITLB_WAY, ITLB_SET*ITLB_WAY, ITLB_WQ_SIZE, ITLB_RQ_SIZE, ITLB_PQ_SIZE, ITLB_MSHR_SIZE },
-        DTLB{ "DTLB", DTLB_SET, DTLB_WAY, DTLB_SET*DTLB_WAY, DTLB_WQ_SIZE, DTLB_RQ_SIZE, DTLB_PQ_SIZE, DTLB_MSHR_SIZE },
-        STLB{ "STLB", STLB_SET, STLB_WAY, STLB_SET*STLB_WAY, STLB_WQ_SIZE, STLB_RQ_SIZE, STLB_PQ_SIZE, STLB_MSHR_SIZE },
-        L1I{ "L1I", L1I_SET, L1I_WAY, L1I_SET*L1I_WAY, L1I_WQ_SIZE, L1I_RQ_SIZE, L1I_PQ_SIZE, L1I_MSHR_SIZE },
-        L1D{ "L1D", L1D_SET, L1D_WAY, L1D_SET*L1D_WAY, L1D_WQ_SIZE, L1D_RQ_SIZE, L1D_PQ_SIZE, L1D_MSHR_SIZE },
-        L2C{ "L2C", L2C_SET, L2C_WAY, L2C_SET*L2C_WAY, L2C_WQ_SIZE, L2C_RQ_SIZE, L2C_PQ_SIZE, L2C_MSHR_SIZE };
+    CACHE ITLB{"ITLB", ITLB_SET, ITLB_WAY, ITLB_SET *ITLB_WAY, ITLB_WQ_SIZE, ITLB_RQ_SIZE, ITLB_PQ_SIZE, ITLB_MSHR_SIZE},
+        DTLB{"DTLB", DTLB_SET, DTLB_WAY, DTLB_SET *DTLB_WAY, DTLB_WQ_SIZE, DTLB_RQ_SIZE, DTLB_PQ_SIZE, DTLB_MSHR_SIZE},
+        STLB{"STLB", STLB_SET, STLB_WAY, STLB_SET *STLB_WAY, STLB_WQ_SIZE, STLB_RQ_SIZE, STLB_PQ_SIZE, STLB_MSHR_SIZE},
+        L1I{"L1I", L1I_SET, L1I_WAY, L1I_SET *L1I_WAY, L1I_WQ_SIZE, L1I_RQ_SIZE, L1I_PQ_SIZE, L1I_MSHR_SIZE},
+        L1D{"L1D", L1D_SET, L1D_WAY, L1D_SET *L1D_WAY, L1D_WQ_SIZE, L1D_RQ_SIZE, L1D_PQ_SIZE, L1D_MSHR_SIZE},
+        L2C{"L2C", L2C_SET, L2C_WAY, L2C_SET *L2C_WAY, L2C_WQ_SIZE, L2C_RQ_SIZE, L2C_PQ_SIZE, L2C_MSHR_SIZE};
 
     // trace cache for previously decoded instructions
 
-      // constructor
-    O3_CPU() {
+    // constructor
+    O3_CPU()
+    {
         cpu = 0;
 
         // trace
@@ -129,17 +131,18 @@ public:
         fetch_resume_cycle = 0;
         num_branch = 0;
         branch_mispredictions = 0;
-        for (uint32_t i=0; i<8; i++)
+        for (uint32_t i = 0; i < 8; i++)
         {
             total_branch_types[i] = 0;
         }
 
-        for (uint32_t i=0; i<STA_SIZE; i++)
+        for (uint32_t i = 0; i < STA_SIZE; i++)
             STA[i] = UINT64_MAX;
         STA_head = 0;
         STA_tail = 0;
 
-        for (uint32_t i=0; i<ROB_SIZE; i++) {
+        for (uint32_t i = 0; i < ROB_SIZE; i++)
+        {
             RTE0[i] = ROB_SIZE;
             RTE1[i] = ROB_SIZE;
         }
@@ -148,7 +151,8 @@ public:
         RTE0_tail = 0;
         RTE1_tail = 0;
 
-        for (uint32_t i=0; i<LQ_SIZE; i++) {
+        for (uint32_t i = 0; i < LQ_SIZE; i++)
+        {
             RTL0[i] = LQ_SIZE;
             RTL1[i] = LQ_SIZE;
         }
@@ -157,7 +161,8 @@ public:
         RTL0_tail = 0;
         RTL1_tail = 0;
 
-        for (uint32_t i=0; i<SQ_SIZE; i++) {
+        for (uint32_t i = 0; i < SQ_SIZE; i++)
+        {
             RTS0[i] = SQ_SIZE;
             RTS1[i] = SQ_SIZE;
         }
@@ -195,13 +200,13 @@ public:
     void add_load_queue(uint32_t rob_index, uint32_t data_index),
         add_store_queue(uint32_t rob_index, uint32_t data_index),
         execute_store(uint32_t rob_index, uint32_t sq_index, uint32_t data_index);
-    int  execute_load(uint32_t rob_index, uint32_t sq_index, uint32_t data_index);
+    int execute_load(uint32_t rob_index, uint32_t sq_index, uint32_t data_index);
     void check_dependency(int prior, int current);
     void operate_cache();
     void update_rob();
     void retire_rob();
 
-    uint32_t  add_to_rob(ooo_model_instr *arch_instr),
+    uint32_t add_to_rob(ooo_model_instr *arch_instr),
         check_rob(uint64_t instr_id);
 
     uint32_t add_to_ifetch_buffer(ooo_model_instr *arch_instr);
@@ -211,7 +216,7 @@ public:
 
     // branch predictor
     uint8_t predict_branch(uint64_t ip);
-    void    initialize_branch_predictor(),
+    void initialize_branch_predictor(),
         last_branch_result(uint64_t ip, uint8_t taken);
 
     // code prefetching

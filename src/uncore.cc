@@ -4,6 +4,6 @@
 UNCORE uncore;
 
 // constructor
-UNCORE::UNCORE() {
-
+UNCORE::UNCORE()
+{
 }

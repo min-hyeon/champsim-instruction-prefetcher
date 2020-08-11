@@ -8,28 +8,29 @@
 #define DRAM_WQ_SIZE 64
 #define DRAM_RQ_SIZE 64
 
-#define tRP_DRAM_NANOSECONDS  12.5
+#define tRP_DRAM_NANOSECONDS 12.5
 #define tRCD_DRAM_NANOSECONDS 12.5
 #define tCAS_DRAM_NANOSECONDS 12.5
 
 // the data bus must wait this amount of time when switching between reads and writes, and vice versa
-#define DRAM_DBUS_TURN_AROUND_TIME ((15*CPU_FREQ)/2000) // 7.5 ns 
+#define DRAM_DBUS_TURN_AROUND_TIME ((15 * CPU_FREQ) / 2000) // 7.5 ns
 extern uint32_t DRAM_MTPS, DRAM_DBUS_RETURN_TIME;
 
 // these values control when to send out a burst of writes
-#define DRAM_WRITE_HIGH_WM    ((DRAM_WQ_SIZE*7)>>3) // 7/8th
-#define DRAM_WRITE_LOW_WM     ((DRAM_WQ_SIZE*3)>>2) // 6/8th
-#define MIN_DRAM_WRITES_PER_SWITCH (DRAM_WQ_SIZE*1/4)
+#define DRAM_WRITE_HIGH_WM ((DRAM_WQ_SIZE * 7) >> 3) // 7/8th
+#define DRAM_WRITE_LOW_WM ((DRAM_WQ_SIZE * 3) >> 2)  // 6/8th
+#define MIN_DRAM_WRITES_PER_SWITCH (DRAM_WQ_SIZE * 1 / 4)
 
 // DRAM
-class MEMORY_CONTROLLER : public MEMORY {
+class MEMORY_CONTROLLER : public MEMORY
+{
 public:
     const string NAME;
 
     DRAM_ARRAY dram_array[DRAM_CHANNELS][DRAM_RANKS][DRAM_BANKS];
-    uint64_t dbus_cycle_available[DRAM_CHANNELS], dbus_cycle_congested[DRAM_CHANNELS], dbus_congested[NUM_TYPES+1][NUM_TYPES+1];
+    uint64_t dbus_cycle_available[DRAM_CHANNELS], dbus_cycle_congested[DRAM_CHANNELS], dbus_congested[NUM_TYPES + 1][NUM_TYPES + 1];
     uint64_t bank_cycle_available[DRAM_CHANNELS][DRAM_RANKS][DRAM_BANKS];
-    uint8_t  do_write, write_mode[DRAM_CHANNELS];
+    uint8_t do_write, write_mode[DRAM_CHANNELS];
     uint32_t processed_writes, scheduled_reads[DRAM_CHANNELS], scheduled_writes[DRAM_CHANNELS];
     int fill_level;
 
@@ -39,23 +40,28 @@ public:
     PACKET_QUEUE WQ[DRAM_CHANNELS], RQ[DRAM_CHANNELS];
 
     // constructor
-    MEMORY_CONTROLLER(string v1) : NAME(v1) {
-        for (uint32_t i=0; i<NUM_TYPES+1; i++) {
-            for (uint32_t j=0; j<NUM_TYPES+1; j++) {
+    MEMORY_CONTROLLER(string v1) : NAME(v1)
+    {
+        for (uint32_t i = 0; i < NUM_TYPES + 1; i++)
+        {
+            for (uint32_t j = 0; j < NUM_TYPES + 1; j++)
+            {
                 dbus_congested[i][j] = 0;
             }
         }
         do_write = 0;
         processed_writes = 0;
-        for (uint32_t i=0; i<DRAM_CHANNELS; i++) {
+        for (uint32_t i = 0; i < DRAM_CHANNELS; i++)
+        {
             dbus_cycle_available[i] = 0;
             dbus_cycle_congested[i] = 0;
             write_mode[i] = 0;
             scheduled_reads[i] = 0;
             scheduled_writes[i] = 0;
 
-            for (uint32_t j=0; j<DRAM_RANKS; j++) {
-                for (uint32_t k=0; k<DRAM_BANKS; k++)
+            for (uint32_t j = 0; j < DRAM_RANKS; j++)
+            {
+                for (uint32_t k = 0; k < DRAM_BANKS; k++)
                     bank_cycle_available[i][j][k] = 0;
             }
 
@@ -72,12 +78,12 @@ public:
     };
 
     // destructor
-    ~MEMORY_CONTROLLER() {
+    ~MEMORY_CONTROLLER(){
 
     };
 
     // functions
-    int  add_rq(PACKET *packet),
+    int add_rq(PACKET *packet),
         add_wq(PACKET *packet),
         add_pq(PACKET *packet);
 

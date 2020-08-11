@@ -5,30 +5,31 @@
 #include "block.h"
 
 // CACHE ACCESS TYPE
-#define LOAD      0
-#define RFO       1
-#define PREFETCH  2
+#define LOAD 0
+#define RFO 1
+#define PREFETCH 2
 #define WRITEBACK 3
 #define NUM_TYPES 4
 
-extern uint32_t tRP,  // Row Precharge (RP) latency
-tRCD, // Row address to Column address (RCD) latency
-tCAS; // Column Address Strobe (CAS) latency
+extern uint32_t tRP, // Row Precharge (RP) latency
+    tRCD,            // Row address to Column address (RCD) latency
+    tCAS;            // Column Address Strobe (CAS) latency
 
 extern uint64_t l2pf_access;
 
-class MEMORY {
+class MEMORY
+{
 public:
     // memory interface
     MEMORY *upper_level_icache[NUM_CPUS], *upper_level_dcache[NUM_CPUS], *lower_level, *extra_interface;
 
     // empty queues
-    PACKET_QUEUE WQ{ "EMPTY", 1 }, RQ{ "EMPTY", 1 }, PQ{ "EMPTY", 1 }, MSHR{ "EMPTY", 1 };
+    PACKET_QUEUE WQ{"EMPTY", 1}, RQ{"EMPTY", 1}, PQ{"EMPTY", 1}, MSHR{"EMPTY", 1};
 
     // functions
-    virtual int  add_rq(PACKET *packet) = 0;
-    virtual int  add_wq(PACKET *packet) = 0;
-    virtual int  add_pq(PACKET *packet) = 0;
+    virtual int add_rq(PACKET *packet) = 0;
+    virtual int add_wq(PACKET *packet) = 0;
+    virtual int add_pq(PACKET *packet) = 0;
     virtual void return_data(PACKET *packet) = 0;
     virtual void operate() = 0;
     virtual void increment_WQ_FULL(uint64_t address) = 0;
@@ -38,8 +39,10 @@ public:
     // stats
     uint64_t ACCESS[NUM_TYPES], HIT[NUM_TYPES], MISS[NUM_TYPES], MSHR_MERGED[NUM_TYPES], STALL[NUM_TYPES];
 
-    MEMORY() {
-        for (uint32_t i=0; i<NUM_TYPES; i++) {
+    MEMORY()
+    {
+        for (uint32_t i = 0; i < NUM_TYPES; i++)
+        {
             ACCESS[i] = 0;
             HIT[i] = 0;
             MISS[i] = 0;
@@ -49,7 +52,8 @@ public:
     }
 };
 
-class BANK_REQUEST {
+class BANK_REQUEST
+{
 public:
     uint64_t cycle_available,
         address,
@@ -66,7 +70,8 @@ public:
 
     int request_index;
 
-    BANK_REQUEST() {
+    BANK_REQUEST()
+    {
         cycle_available = 0;
         address = 0;
         full_addr = 0;

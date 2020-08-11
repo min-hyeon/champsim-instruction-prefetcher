@@ -6,7 +6,8 @@
 #include "set.h"
 
 // CACHE BLOCK
-class BLOCK {
+class BLOCK
+{
 public:
     uint8_t valid,
         prefetch,
@@ -29,7 +30,8 @@ public:
     // replacement state
     uint32_t lru;
 
-    BLOCK() {
+    BLOCK()
+    {
         valid = 0;
         prefetch = 0;
         dirty = 0;
@@ -52,17 +54,20 @@ public:
 };
 
 // DRAM CACHE BLOCK
-class DRAM_ARRAY {
+class DRAM_ARRAY
+{
 public:
     BLOCK **block;
 
-    DRAM_ARRAY() {
+    DRAM_ARRAY()
+    {
         block = NULL;
     };
 };
 
 // message packet
-class PACKET {
+class PACKET
+{
 public:
     uint8_t instruction,
         is_data,
@@ -87,10 +92,10 @@ public:
 
     uint32_t pf_metadata;
 
-    uint8_t  is_producer,
-        //rob_index_depend_on_me[ROB_SIZE], 
-        //lq_index_depend_on_me[ROB_SIZE], 
-        //sq_index_depend_on_me[ROB_SIZE], 
+    uint8_t is_producer,
+        //rob_index_depend_on_me[ROB_SIZE],
+        //lq_index_depend_on_me[ROB_SIZE],
+        //sq_index_depend_on_me[ROB_SIZE],
         instr_merged,
         load_merged,
         store_merged,
@@ -115,7 +120,8 @@ public:
         event_cycle,
         cycle_enqueued;
 
-    PACKET() {
+    PACKET()
+    {
         instruction = 0;
         is_data = 1;
         fill_l1i = 0;
@@ -141,13 +147,13 @@ public:
         signature = 0;
         confidence = 0;
 
-        #if 0
+#if 0
         for (uint32_t i=0; i<ROB_SIZE; i++) {
             rob_index_depend_on_me[i] = 0;
             lq_index_depend_on_me[i] = 0;
             sq_index_depend_on_me[i] = 0;
         }
-        #endif
+#endif
         is_producer = 0;
         instr_merged = 0;
         load_merged = 0;
@@ -170,12 +176,13 @@ public:
 };
 
 // packet queue
-class PACKET_QUEUE {
+class PACKET_QUEUE
+{
 public:
     string NAME;
     uint32_t SIZE;
 
-    uint8_t  is_RQ,
+    uint8_t is_RQ,
         is_WQ,
         write_mode;
 
@@ -199,10 +206,11 @@ public:
         ROW_BUFFER_MISS,
         FULL;
 
-    PACKET *entry, processed_packet[2*MAX_READ_PER_CYCLE];
+    PACKET *entry, processed_packet[2 * MAX_READ_PER_CYCLE];
 
     // constructor
-    PACKET_QUEUE(string v1, uint32_t v2) : NAME(v1), SIZE(v2) {
+    PACKET_QUEUE(string v1, uint32_t v2) : NAME(v1), SIZE(v2)
+    {
         is_RQ = 0;
         is_WQ = 0;
         write_mode = 0;
@@ -231,7 +239,8 @@ public:
         entry = new PACKET[SIZE];
     };
 
-    PACKET_QUEUE() {
+    PACKET_QUEUE()
+    {
         is_RQ = 0;
         is_WQ = 0;
 
@@ -256,22 +265,24 @@ public:
         ROW_BUFFER_MISS = 0;
         FULL = 0;
 
-        //entry = new PACKET[SIZE]; 
+        //entry = new PACKET[SIZE];
     };
 
     // destructor
-    ~PACKET_QUEUE() {
+    ~PACKET_QUEUE()
+    {
         delete[] entry;
     };
 
     // functions
-    int check_queue(PACKET* packet);
-    void add_queue(PACKET* packet),
-        remove_queue(PACKET* packet);
+    int check_queue(PACKET *packet);
+    void add_queue(PACKET *packet),
+        remove_queue(PACKET *packet);
 };
 
 // reorder buffer
-class CORE_BUFFER {
+class CORE_BUFFER
+{
 public:
     const string NAME;
     const uint32_t SIZE;
@@ -293,13 +304,14 @@ public:
     ooo_model_instr *entry;
 
     // constructor
-    CORE_BUFFER(string v1, uint32_t v2) : NAME(v1), SIZE(v2) {
+    CORE_BUFFER(string v1, uint32_t v2) : NAME(v1), SIZE(v2)
+    {
         head = 0;
         tail = 0;
         occupancy = 0;
 
-        last_read = SIZE-1;
-        last_fetch = SIZE-1;
+        last_read = SIZE - 1;
+        last_fetch = SIZE - 1;
         last_scheduled = 0;
 
         inorder_fetch[0] = 0;
@@ -319,13 +331,15 @@ public:
     };
 
     // destructor
-    ~CORE_BUFFER() {
+    ~CORE_BUFFER()
+    {
         delete[] entry;
     };
 };
 
-// load/store queue 
-class LSQ_ENTRY {
+// load/store queue
+class LSQ_ENTRY
+{
 public:
     uint64_t instr_id,
         producer_id,
@@ -344,7 +358,8 @@ public:
         forwarding_depend_on_me;
 
     // constructor
-    LSQ_ENTRY() {
+    LSQ_ENTRY()
+    {
         instr_id = 0;
         producer_id = UINT64_MAX;
         virtual_address = 0;
@@ -361,14 +376,15 @@ public:
         asid[0] = UINT8_MAX;
         asid[1] = UINT8_MAX;
 
-        #if 0
+#if 0
         for (uint32_t i=0; i<ROB_SIZE; i++)
             forwarding_depend_on_me[i] = 0;
-        #endif
+#endif
     };
 };
 
-class LOAD_STORE_QUEUE {
+class LOAD_STORE_QUEUE
+{
 public:
     const string NAME;
     const uint32_t SIZE;
@@ -377,7 +393,8 @@ public:
     LSQ_ENTRY *entry;
 
     // constructor
-    LOAD_STORE_QUEUE(string v1, uint32_t v2) : NAME(v1), SIZE(v2) {
+    LOAD_STORE_QUEUE(string v1, uint32_t v2) : NAME(v1), SIZE(v2)
+    {
         occupancy = 0;
         head = 0;
         tail = 0;
@@ -386,7 +403,8 @@ public:
     };
 
     // destructor
-    ~LOAD_STORE_QUEUE() {
+    ~LOAD_STORE_QUEUE()
+    {
         delete[] entry;
     };
 };
