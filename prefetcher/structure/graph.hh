@@ -489,7 +489,7 @@ namespace GTL {
          * Return a list of undirected edge descriptors incident on
          * the node pointed by "p_node_derived_".
          */
-        template <template <typename ...> class Container,
+        template <template <typename ...> class Container = std::vector,
             typename std::enable_if<
                 type_traits::is_stl_seq<Container>::value, void>::type* = nullptr >
         auto incident_edges() const -> Container<EdgeDescriptor>
@@ -555,7 +555,7 @@ namespace GTL {
          * Return a list of directed edge descriptors outgoing from
          * the node pointed by "p_node_derived_".
          */
-        template <template <typename ...> class Container,
+        template <template <typename ...> class Container = std::vector,
             typename std::enable_if<
                 type_traits::is_stl_seq<Container>::value, void>::type* = nullptr >
         auto outgoing_edges() const -> Container<EdgeDescriptor>
@@ -572,7 +572,7 @@ namespace GTL {
          * Return a list of directed edge descriptors incoming into
          * the node pointed by "p_node_derived_".
          */
-        template <template <typename ...> class Container,
+        template <template <typename ...> class Container = std::vector,
             typename std::enable_if<
                 type_traits::is_stl_seq<Container>::value, void>::type* = nullptr >
         auto incoming_edges() const -> Container<EdgeDescriptor>
@@ -821,7 +821,7 @@ namespace GTL {
     public:
 
         // Return the sequential container of all nodes in the graph
-        template <template <typename ...> class Container,
+        template <template <typename ...> class Container = std::vector,
             typename std::enable_if<
                 type_traits::is_stl_seq<Container>::value, void>::type* = nullptr >
         auto nodes() const -> Container<NodeDescriptor>
@@ -834,7 +834,7 @@ namespace GTL {
         }
 
         // Return the sequential container of all edges in the graph
-        template <template <typename ...> class Container,
+        template <template <typename ...> class Container = std::vector,
             typename std::enable_if<
                 type_traits::is_stl_seq<Container>::value, void>::type* = nullptr >
         auto edges() const -> Container<EdgeDescriptor>
@@ -846,6 +846,11 @@ namespace GTL {
             return seq;
         }
 
+
+        /**
+         * Insert a node with the given name-storage pair, and return
+         * a new node descriptor associated with the newly inserted node.
+         */
         auto insert_node(const std::pair<NodeNameType, NodeStorageType>& pair) -> NodeDescriptor
         {
             std::shared_ptr<NodeBaseType> p{ new NodeDerivedType{pair.first, pair.second} };            
@@ -859,6 +864,15 @@ namespace GTL {
             return NodeDescriptor(p.get());
         }
 
+        /**
+         * Insert an edge with the given name-storage pair and the two
+         * node descriptors, and return a new edge descriptor associated
+         * with the newly inserted edge.
+         * 
+         * In the graph is undirected, the order of "node1" and "node2"
+         * is meaningless, but if the graph is directed, the ordermeans
+         * the direction; "node1 --> node2".
+         */
         auto insert_edge(
             const std::pair<EdgeNameType, EdgeStorageType>& pair,
             const NodeDescriptor& node1,
@@ -876,6 +890,22 @@ namespace GTL {
             
             return EdgeDescriptor(it.first->second.get());
         }
+
+        // Remove node instance associated with the edge descriptor "v"
+        // and all its connected edge instances.
+        void remove_node(const NodeDescriptor& v) {
+            this->_M_impl_disconnect_node(v, IsDirected{});
+            this->node_map_.erase(v.p_node_derived_->this_in_node_map_);
+        }
+
+        // Remove edge instance associated with the edge descriptor "e".
+        void remove_edge(const EdgeDescriptor& e)
+        {
+            auto p = e.p_edge_derived_;
+            this->_M_impl_unhook_nodes(p, IsDirected{});
+            this->edge_map_.erase(p->this_in_edge_map_);
+        }
+
     private:
 
         void _M_impl_hook_nodes(
@@ -884,13 +914,18 @@ namespace GTL {
             const NodeDescriptor& node1,
             const NodeDescriptor& node2,
             Undirected);
-
         void _M_impl_hook_nodes(
             const std::pair<EdgeNameType, EdgeStorageType>& pair,
             std::shared_ptr<EdgeBaseType>& p,
             const NodeDescriptor& node1,
             const NodeDescriptor& node2,
             Directed);
+
+        void _M_impl_unhook_nodes(EdgeDerivedType* p, Undirected);
+        void _M_impl_unhook_nodes(EdgeDerivedType* p, Directed);
+
+        void _M_impl_disconnect_node(const NodeDescriptor& v, Undirected);
+        void _M_impl_disconnect_node(const NodeDescriptor& v, Directed);
 
     };
 
@@ -930,6 +965,53 @@ namespace GTL {
         static_cast<EdgeDerivedType*>(p.get())->p_node_to_   = node2.p_node_derived_->this_in_node_map_->second.get();
     }
 
+    template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
+    void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_unhook_nodes(EdgeDerivedType* p, Undirected)
+    {
+        static_cast<NodeDerivedType*>(p->p_node1_)->incidents_.erase(p->this1_in_incidents_);
+        static_cast<NodeDerivedType*>(p->p_node2_)->incidents_.erase(p->this2_in_incidents_);
+    }
+
+    template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
+    void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_unhook_nodes(EdgeDerivedType* p, Directed)
+    {
+        static_cast<NodeDerivedType*>(p->p_node_from_)->outgoings_.erase(p->this_in_outgoings_);
+        static_cast<NodeDerivedType*>(p->p_node_to_)->incomings_.erase(p->this_in_incomings_);
+    }
+
+    template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
+    void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_disconnect_node(const NodeDescriptor& v, Undirected)
+    {
+        auto incidents = v.incident_edges();
+        std::for_each(
+            incidents.begin(), incidents.end(),
+            [this](const EdgeDescriptor& e) -> void {
+                this->remove_edge(e);
+            }
+        );
+    }
+
+    template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
+    void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_disconnect_node(const NodeDescriptor& v, Directed)
+    {
+        auto incomings = v.incoming_edges();
+        std::for_each(
+            incomings.begin(), incomings.end(),
+            [this](const EdgeDescriptor& e) -> void {
+                this->remove_edge(e);
+            }
+        );
+        auto outgoings = v.outgoing_edges();
+        std::for_each(
+            outgoings.begin(), outgoings.end(),
+            [this](const EdgeDescriptor& e) -> void {
+                this->remove_edge(e);
+            }
+        );
+    }
+
 }   // namespace GTL
+
+
 
 #endif   // GTL_GRAPH_H
