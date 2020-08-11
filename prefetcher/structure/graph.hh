@@ -8,9 +8,10 @@
 #include <vector>
 #include <list>
 #include <stdexcept>
+#include <algorithm>
 
-//#define GRAPH_NDEBUG
-#ifndef GRAPH_NDEBUG
+//#define GRAPH_DEBUG
+#ifdef GRAPH_DEBUG
     #include <iostream>
     #define GRAPH_DEBUG_PRINT(expr) expr
 #else
@@ -152,7 +153,10 @@ namespace GTL {
     // Commonly used components
     template <typename NodeTraits, typename EdgeTraits>
     class NodeBase {
-        template <typename, typename, typename> friend class Graph;
+        template <typename, typename>
+        friend class __NodeDescriptorBase;
+        template <typename, typename, typename>
+        friend class Graph;
     public:
         // Basic typedefs
         using NodeBaseType = NodeBase<NodeTraits, EdgeTraits>;
@@ -198,7 +202,10 @@ namespace GTL {
     class Node<NodeTraits, EdgeTraits, Undirected>
         : public NodeBase<NodeTraits, EdgeTraits>
     {
-        template <typename, typename, typename> friend class Graph;
+        template <typename, typename, typename>
+        friend class __NodeDescriptor;
+        template <typename, typename, typename>
+        friend class Graph;
     public:
         using Base = NodeBase<NodeTraits, EdgeTraits>;
     private:
@@ -218,7 +225,10 @@ namespace GTL {
     class Node<NodeTraits, EdgeTraits, Directed>
         : public NodeBase<NodeTraits, EdgeTraits>
     {
-        template <typename, typename, typename> friend class Graph;
+        template <typename, typename, typename>
+        friend class __NodeDescriptor;
+        template <typename, typename, typename>
+        friend class Graph;
     public:
         using Base = NodeBase<NodeTraits, EdgeTraits>;
     private:
@@ -283,7 +293,10 @@ namespace GTL {
     // Commonly used components
     template <typename NodeTraits, typename EdgeTraits>
     class EdgeBase {
-        template <typename, typename, typename> friend class Graph;
+        template <typename, typename>
+        friend class __EdgeDescriptorBase;
+        template <typename, typename, typename>
+        friend class Graph;
     public:
         // Basic typedefs
         using NodeBaseType = NodeBase<NodeTraits, EdgeTraits>;
@@ -331,6 +344,7 @@ namespace GTL {
     class Edge<NodeTraits, EdgeTraits, Undirected>
         : public EdgeBase<NodeTraits, EdgeTraits>
     {
+        template <typename, typename, typename> friend class __EdgeDescriptor;
         template <typename, typename, typename> friend class Graph;
     public:
         using Base = EdgeBase<NodeTraits, EdgeTraits>;
@@ -356,6 +370,7 @@ namespace GTL {
     class Edge<NodeTraits, EdgeTraits, Directed>
         : public EdgeBase<NodeTraits, EdgeTraits>
     {
+        template <typename, typename, typename> friend class __EdgeDescriptor;
         template <typename, typename, typename> friend class Graph;
     public:
         using Base = EdgeBase<NodeTraits, EdgeTraits>;
@@ -393,6 +408,27 @@ namespace GTL {
 
     }   // namespace type_traits
 
+    /**
+     * 4. Node descriptors.
+     * 
+     * Node descriptors provide access to element and information
+     * regarding incident edges and adjacent nodes. That is, node
+     * descriptors behave like stl iterators, except that they don't
+     * provide any iteration support.
+     * 
+     * - operator*(): Return the copy of the storage associated
+     *     with the node pointed by "p_node_".
+     * 
+     * - name(): Return the name of the corresponding node.
+     * 
+     * - storage(): Return the referecne of the storage.
+     * - storage_copy(): Return the copy of the storage, behave like
+     *     operator*(). 
+     */
+
+    // [Node descriptors] <\begin>
+    //
+
     template <typename NodeTraits, typename EdgeTraits>
     class __NodeDescriptorBase {
     public:
@@ -422,6 +458,7 @@ namespace GTL {
         : public __NodeDescriptorBase<NodeTraits, EdgeTraits>
     {};
 
+    // Undirected node descriptor
     template <typename NodeTraits, typename EdgeTraits>
     class __NodeDescriptor<NodeTraits, EdgeTraits, Undirected>
         : public __NodeDescriptorBase<NodeTraits, EdgeTraits>
@@ -441,20 +478,52 @@ namespace GTL {
         __NodeDescriptor(typename Base::NodeBaseType* p_node)
             : Base(p_node), p_node_derived_(static_cast<NodeDerivedType*>(this->p_node_)) {}
 
+        NodeDescriptor& operator=(const NodeDescriptor& v) { p_node_derived_ = v.p_node_derived_; }
+
+        bool operator!=(const NodeDescriptor& v) const { return p_node_derived_ != v.p_node_derived_; }
+        bool operator==(const NodeDescriptor& v) const { return p_node_derived_ == v.p_node_derived_; }
+
+        std::size_t degree() const { return this->p_node_derived_->incidents_.size(); }
+
+        /**
+         * Return a list of undirected edge descriptors incident on
+         * the node pointed by "p_node_derived_".
+         */
         template <template <typename ...> class Container,
             typename std::enable_if<
                 type_traits::is_stl_seq<Container>::value, void>::type* = nullptr >
         auto incident_edges() const -> Container<EdgeDescriptor>
         {
             Container<EdgeDescriptor> seq;
-            const auto& incidents = *(this->p_node_derived_->incidents_);
+            const auto& incidents = this->p_node_derived_->incidents_;
             for (auto it = incidents.begin(); it != incidents.end(); it++) {
                 seq.push_back(EdgeDescriptor(it->second.get()));
             }
             return seq;
         }
+
+        // Test whether the node "v" and and this node are adjacent.
+        auto is_adjacent_to(const NodeDescriptor& v) const -> bool
+        {
+            if (v.degree() < this->degree()) {
+                auto incidents = v.incident_edges<std::vector>();
+                return std::find_if(
+                    incidents.begin(), incidents.end(),
+                    [this, v](const EdgeDescriptor& e) -> bool {
+                        return *this == e.opposite(v);
+                        }) != incidents.end();
+            } else {
+                auto incidents = this->incident_edges<std::vector>();
+                return std::find_if(
+                    incidents.begin(), incidents.end(),
+                    [this, v](const EdgeDescriptor& e) -> bool {
+                        return v == e.opposite(*this);
+                        }) != incidents.end();
+            }
+        }
     };
 
+    // Directed node descriptor
     template <typename NodeTraits, typename EdgeTraits>
     class __NodeDescriptor<NodeTraits, EdgeTraits, Directed>
         : public __NodeDescriptorBase<NodeTraits, EdgeTraits>
@@ -466,7 +535,7 @@ namespace GTL {
         using NodeDescriptor = __NodeDescriptor<NodeTraits, EdgeTraits, Directed>;
         using EdgeDescriptor = __EdgeDescriptor<NodeTraits, EdgeTraits, Directed>;
     public:
-        using NodeDerivedType = Node<NodeTraits, EdgeTraits, Undirected>;
+        using NodeDerivedType = Node<NodeTraits, EdgeTraits, Directed>;
     private:
         NodeDerivedType* p_node_derived_;
     public:
@@ -474,31 +543,112 @@ namespace GTL {
         __NodeDescriptor(typename Base::NodeBaseType* p_node)
             : Base(p_node), p_node_derived_(static_cast<NodeDerivedType*>(this->p_node_)) {}
 
+        NodeDescriptor& operator=(const NodeDescriptor& v) { p_node_derived_ = v.p_node_derived_; }
+
+        bool operator!=(const NodeDescriptor& v) const { return p_node_derived_ != v.p_node_derived_; }
+        bool operator==(const NodeDescriptor& v) const { return p_node_derived_ == v.p_node_derived_; }
+
+        std::size_t indegree()  const { return this->p_node_derived_->incomings_.size(); }
+        std::size_t outdegree() const { return this->p_node_derived_->outgoings_.size(); }
+
+        /** 
+         * Return a list of directed edge descriptors outgoing from
+         * the node pointed by "p_node_derived_".
+         */
         template <template <typename ...> class Container,
             typename std::enable_if<
                 type_traits::is_stl_seq<Container>::value, void>::type* = nullptr >
         auto outgoing_edges() const -> Container<EdgeDescriptor>
         {
             Container<EdgeDescriptor> seq;
-            const auto& outgoings = *(this->p_node_derived_->outgoings_);
+            const auto& outgoings = this->p_node_derived_->outgoings_;
             for (auto it = outgoings.begin(); it != outgoings.end(); it++) {
                 seq.push_back(EdgeDescriptor(it->second.get()));
             }
             return seq;
         }
+
+        /** 
+         * Return a list of directed edge descriptors incoming into
+         * the node pointed by "p_node_derived_".
+         */
         template <template <typename ...> class Container,
             typename std::enable_if<
                 type_traits::is_stl_seq<Container>::value, void>::type* = nullptr >
         auto incoming_edges() const -> Container<EdgeDescriptor>
         {
             Container<EdgeDescriptor> seq;
-            const auto& incomings = *(this->p_node_derived_->incomings_);
+            const auto& incomings = this->p_node_derived_->incomings_;
             for (auto it = incomings.begin(); it != incomings.end(); it++) {
                 seq.push_back(EdgeDescriptor(it->second.get()));
             }
             return seq;
         }
+
+        // Test whether this node points to the node "v".
+        auto point_to(const NodeDescriptor& v) const -> bool
+        {
+            if (this->outdegree() < v.indegree()) {
+                auto outgoings = this->outgoing_edges<std::vector>();
+                return std::find_if(
+                    outgoings.begin(), outgoings.end(),
+                    [this, v](const EdgeDescriptor& e) -> bool {
+                        return v == e.dst();
+                        }) != outgoings.end();
+            } else {
+                auto incomings = v.incoming_edges<std::vector>();
+                return std::find_if(
+                    incomings.begin(), incomings.end(),
+                    [this, v](const EdgeDescriptor& e) -> bool {
+                        return *this == e.src();
+                        }) != incomings.end();
+            }
+        }
+
+        // Test whether this node is pointed by the node "v".
+        auto is_pointed_by(const NodeDescriptor& v) const -> bool
+        {
+            if (this->indegree() < v.outdegree()) {
+                auto incomings = this->incoming_edges<std::vector>();
+                return std::find_if(
+                    incomings.begin(), incomings.end(),
+                    [this, v](const EdgeDescriptor& e) -> bool {
+                        return v == e.src();
+                        }) != incomings.end();
+            } else {
+                auto outgoings = v.outgoing_edges<std::vector>();
+                return std::find_if(
+                    outgoings.begin(), outgoings.end(),
+                    [this, v](const EdgeDescriptor& e) -> bool {
+                        return *this == e.dst();
+                        }) != outgoings.end();
+            }
+        }
     };
+
+    //
+    // [Node descriptors] <\end>
+
+    /**
+     * 5. Edge descriptors.
+     * 
+     * Edge descriptors provide access to element and information
+     * regarding the edge's incidence relationships. That is, edge
+     * descriptors behave like stl iterators, except that they don't
+     * provide any iteration support.
+     * 
+     * - operator*(): Return the copy of the storage associated
+     *     with the edge pointed by "p_edge_".
+     * 
+     * - name(): Return the name of the corresponding edge.
+     * 
+     * - storage(): Return the referecne of the storage.
+     * - storage_copy(): Return the copy of the storage, behave like
+     *     operator*(). 
+     */
+
+    // [Edge descriptors] <\begin>
+    //
 
     template <typename NodeTraits, typename EdgeTraits>
     class __EdgeDescriptorBase {
@@ -527,12 +677,111 @@ namespace GTL {
     template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
     class __EdgeDescriptor
         : public __EdgeDescriptorBase<NodeTraits, EdgeTraits>
+    {};
+
+    // Undirected edge descriptor
+    template <typename NodeTraits, typename EdgeTraits>
+    class __EdgeDescriptor<NodeTraits, EdgeTraits, Undirected>
+        : public __EdgeDescriptorBase<NodeTraits, EdgeTraits>
     {
+        template <typename, typename, typename> friend class Graph;
     public:
         using Base           = __EdgeDescriptorBase<NodeTraits, EdgeTraits>;
     public:
-        __EdgeDescriptor(typename Base::EdgeBaseType* p_edge) : Base(this->p_edge_) {}
+        using NodeDescriptor = __NodeDescriptor<NodeTraits, EdgeTraits, Undirected>;
+        using EdgeDescriptor = __EdgeDescriptor<NodeTraits, EdgeTraits, Undirected>;
+    public:
+        using EdgeDerivedType = Edge<NodeTraits, EdgeTraits, Undirected>;
+    private:
+        EdgeDerivedType* p_edge_derived_;
+    public:
+
+        __EdgeDescriptor(typename Base::EdgeBaseType* p_edge)
+            : Base(p_edge), p_edge_derived_(static_cast<EdgeDerivedType*>(this->p_edge_)) {}
+
+        EdgeDescriptor& operator=(const EdgeDescriptor& e) { p_edge_derived_ = e.p_edge_derived_; }
+
+        bool operator!=(const EdgeDescriptor& e) const { return p_edge_derived_ != e.p_edge_derived_; }
+        bool operator==(const EdgeDescriptor& e) const { return p_edge_derived_ == e.p_edge_derived_; }
+
+        /**
+         * Return the end node of this edge distinct from the node
+         * "v"; an error occurs if e is not incident on v.
+         */
+        auto opposite(const NodeDescriptor& v) const -> NodeDescriptor
+        {
+            if (NodeDescriptor(p_edge_derived_->p_node1_) == v)
+                return NodeDescriptor(p_edge_derived_->p_node2_);
+            else if (NodeDescriptor(p_edge_derived_->p_node2_) == v)
+                return NodeDescriptor(p_edge_derived_->p_node1_);
+            else
+                throw std::runtime_error(
+                    "[Error] This edge is not incident on v.");
+        }
+
+        // Test whether this edge is incident on "v".
+        auto is_incident_on(const NodeDescriptor& v) const -> bool
+        {
+            return (
+                v == NodeDescriptor(p_edge_derived_->p_node1_) ||
+                v == NodeDescriptor(p_edge_derived_->p_node2_)) ? true : false;
+        }
+
+        auto end_nodes() const -> std::pair<NodeDescriptor, NodeDescriptor>
+        {
+            return std::make_pair(
+                NodeDescriptor(p_edge_derived_->p_node1_),
+                NodeDescriptor(p_edge_derived_->p_node2_));
+        } 
     };
+
+    // Directed edge descriptor
+    template <typename NodeTraits, typename EdgeTraits>
+    class __EdgeDescriptor<NodeTraits, EdgeTraits, Directed>
+        : public __EdgeDescriptorBase<NodeTraits, EdgeTraits>
+    {
+        template <typename, typename, typename> friend class Graph;
+    public:
+        using Base           = __EdgeDescriptorBase<NodeTraits, EdgeTraits>;
+    public:
+        using NodeDescriptor = __NodeDescriptor<NodeTraits, EdgeTraits, Directed>;
+        using EdgeDescriptor = __EdgeDescriptor<NodeTraits, EdgeTraits, Directed>;
+    public:
+        using EdgeDerivedType = Edge<NodeTraits, EdgeTraits, Directed>;
+    private:
+        EdgeDerivedType* p_edge_derived_;
+    public:
+
+        __EdgeDescriptor(typename Base::EdgeBaseType* p_edge)
+            : Base(p_edge), p_edge_derived_(static_cast<EdgeDerivedType*>(this->p_edge_)) {}
+
+        EdgeDescriptor& operator=(const EdgeDescriptor& e) { p_edge_derived_ = e.p_edge_derived_; }
+
+        bool operator!=(const EdgeDescriptor& e) const { return p_edge_derived_ != e.p_edge_derived_; }
+        bool operator==(const EdgeDescriptor& e) const { return p_edge_derived_ == e.p_edge_derived_; }
+
+        /**
+         * Return the end node of this edge distinct from the node
+         * "v"; an error occurs if e is not incident on v.
+         */
+        auto opposite(const NodeDescriptor& v) const -> NodeDescriptor
+        {
+            if (NodeDescriptor(p_edge_derived_->p_node_from_) == v)
+                return NodeDescriptor(p_edge_derived_->p_node_to_);
+            else if (NodeDescriptor(p_edge_derived_->p_node_to_) == v)
+                return NodeDescriptor(p_edge_derived_->p_node_from_);
+            else
+                throw std::runtime_error(
+                    "[Error] This edge is not incident on v.");
+        }
+
+        auto src() const -> NodeDescriptor { return NodeDescriptor(p_edge_derived_->p_node_from_); }
+        auto dst() const -> NodeDescriptor { return NodeDescriptor(p_edge_derived_->p_node_to_); }
+
+    };
+
+    //
+    // [Edge descriptors] <\end>
 
     template <typename NodeTraits, typename EdgeTraits, typename IsDirected = Undirected>
     class Graph {
@@ -552,8 +801,8 @@ namespace GTL {
         using EdgeNameCompare = typename EdgeTraits::KeyCompare;
         using EdgeStorageType = typename EdgeTraits::StorageType;
     public:
-        using NodeDescriptor  = __NodeDescriptor<NodeTraits, EdgeTraits, Directed>;
-        using EdgeDescriptor  = __EdgeDescriptor<NodeTraits, EdgeTraits, Directed>;
+        using NodeDescriptor  = __NodeDescriptor<NodeTraits, EdgeTraits, IsDirected>;
+        using EdgeDescriptor  = __EdgeDescriptor<NodeTraits, EdgeTraits, IsDirected>;
     public:
         // Inner container types
         using NodeMapType
@@ -571,6 +820,7 @@ namespace GTL {
         EdgeMapType edge_map_;
     public:
 
+        // Return the sequential container of all nodes in the graph
         template <template <typename ...> class Container,
             typename std::enable_if<
                 type_traits::is_stl_seq<Container>::value, void>::type* = nullptr >
@@ -582,6 +832,8 @@ namespace GTL {
             }
             return seq;
         }
+
+        // Return the sequential container of all edges in the graph
         template <template <typename ...> class Container,
             typename std::enable_if<
                 type_traits::is_stl_seq<Container>::value, void>::type* = nullptr >
@@ -594,44 +846,90 @@ namespace GTL {
             return seq;
         }
 
-        NodeDescriptor insert_node(const std::pair<NodeNameType, NodeStorageType>& pair) {
+        auto insert_node(const std::pair<NodeNameType, NodeStorageType>& pair) -> NodeDescriptor
+        {
             std::shared_ptr<NodeBaseType> p{ new NodeDerivedType{pair.first, pair.second} };            
             auto it = node_map_.insert(std::make_pair(pair.first, p));
+
             if (it.second == false)
                 throw std::runtime_error(
                     "[Error] Node name is duplicated.");
             p->this_in_node_map_ = it.first;
+
             return NodeDescriptor(p.get());
         }
 
-        template <typename std::enable_if<
-            std::is_same<
-                IsDirected, Undirected>::value, void>::type* = nullptr >
-        EdgeDescriptor insert_edge(
+        auto insert_edge(
             const std::pair<EdgeNameType, EdgeStorageType>& pair,
             const NodeDescriptor& node1,
-            const NodeDescriptor& node2)
+            const NodeDescriptor& node2) -> EdgeDescriptor
         {
             std::shared_ptr<EdgeBaseType> p{ new EdgeDerivedType{pair.first, pair.second} };
             auto it = edge_map_.insert(std::make_pair(pair.first, p));
+
             if (it.second == false)
                 throw std::runtime_error(
                     "[Error] Edge name is duplicated.");
             p->this_in_edge_map_ = it.first;
-
-            auto it1pair = node1.p_node_derived_->incidents_.insert(std::make_pair(pair.first, p));
-            auto it2pair = node2.p_node_derived_->incidents_.insert(std::make_pair(pair.first, p));
-
-            static_cast<EdgeDerivedType*>(p.get())->this1_in_incidents_ = it1pair.first;
-            static_cast<EdgeDerivedType*>(p.get())->this2_in_incidents_ = it2pair.first;
-
-            static_cast<EdgeDerivedType*>(p.get())->p_node1_ = node1.p_node_derived_->this_in_node_map_->second.get();
-            static_cast<EdgeDerivedType*>(p.get())->p_node2_ = node2.p_node_derived_->this_in_node_map_->second.get();
-
+            
+            this->_M_impl_hook_nodes(pair, p, node1, node2, IsDirected{});
+            
             return EdgeDescriptor(it.first->second.get());
         }
+    private:
+
+        void _M_impl_hook_nodes(
+            const std::pair<EdgeNameType, EdgeStorageType>& pair,
+            std::shared_ptr<EdgeBaseType>& p,
+            const NodeDescriptor& node1,
+            const NodeDescriptor& node2,
+            Undirected);
+
+        void _M_impl_hook_nodes(
+            const std::pair<EdgeNameType, EdgeStorageType>& pair,
+            std::shared_ptr<EdgeBaseType>& p,
+            const NodeDescriptor& node1,
+            const NodeDescriptor& node2,
+            Directed);
+
     };
 
-}   // namespace gtl
+    template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
+    void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_hook_nodes(
+            const std::pair<EdgeNameType, EdgeStorageType>& pair,
+            std::shared_ptr<EdgeBaseType>& p,
+            const NodeDescriptor& node1,
+            const NodeDescriptor& node2,
+            Undirected)
+    {
+        auto it1 = node1.p_node_derived_->incidents_.insert(std::make_pair(pair.first, p));
+        auto it2 = node2.p_node_derived_->incidents_.insert(std::make_pair(pair.first, p));
+
+        static_cast<EdgeDerivedType*>(p.get())->this1_in_incidents_ = it1.first;
+        static_cast<EdgeDerivedType*>(p.get())->this2_in_incidents_ = it2.first;
+
+        static_cast<EdgeDerivedType*>(p.get())->p_node1_ = node1.p_node_derived_->this_in_node_map_->second.get();
+        static_cast<EdgeDerivedType*>(p.get())->p_node2_ = node2.p_node_derived_->this_in_node_map_->second.get();
+    }
+
+    template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
+    void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_hook_nodes(
+                const std::pair<EdgeNameType, EdgeStorageType>& pair,
+                std::shared_ptr<EdgeBaseType>& p,
+                const NodeDescriptor& node1,
+                const NodeDescriptor& node2,
+                Directed)
+    {
+        auto it1 = node1.p_node_derived_->outgoings_.insert(std::make_pair(pair.first, p));
+        auto it2 = node2.p_node_derived_->incomings_.insert(std::make_pair(pair.first, p));
+
+        static_cast<EdgeDerivedType*>(p.get())->this_in_outgoings_ = it1.first;
+        static_cast<EdgeDerivedType*>(p.get())->this_in_incomings_ = it2.first;
+
+        static_cast<EdgeDerivedType*>(p.get())->p_node_from_ = node1.p_node_derived_->this_in_node_map_->second.get();
+        static_cast<EdgeDerivedType*>(p.get())->p_node_to_   = node2.p_node_derived_->this_in_node_map_->second.get();
+    }
+
+}   // namespace GTL
 
 #endif   // GTL_GRAPH_H
