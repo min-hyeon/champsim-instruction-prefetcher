@@ -1,5 +1,5 @@
-#ifndef THROW_H
-#define THROW_H
+#ifndef FORMAT_H
+#define FORMAT_H
 
 #include <string>
 #include <sstream>
@@ -118,4 +118,4 @@ namespace fmt {
 
 }   // namespace fmt
 
-#endif   // THROW_H
+#endif   // FORMAT_H
