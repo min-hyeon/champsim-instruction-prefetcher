@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <algorithm>
 
+#include "format.hh"
+
 //#define GRAPH_DEBUG
 #ifdef GRAPH_DEBUG
     #include <iostream>
@@ -432,6 +434,9 @@ namespace GTL {
     template <typename NodeTraits, typename EdgeTraits>
     class __NodeDescriptorBase {
     public:
+        using NodeDescriptorBase
+            = __NodeDescriptorBase<NodeTraits, EdgeTraits>;
+    public:
         // Basic typedefs
         using NodeBaseType   = NodeBase<NodeTraits, EdgeTraits>;
         // Extract inner types
@@ -443,6 +448,9 @@ namespace GTL {
     public:
 
         __NodeDescriptorBase(NodeBaseType* p_node) : p_node_(p_node) {}
+
+        bool operator!=(const NodeDescriptorBase& v) const { return p_node_ != v.p_node_; }
+        bool operator==(const NodeDescriptorBase& v) const { return p_node_ == v.p_node_; }
 
         // Get the name of this node
         NameType name() const { return p_node_->name_; }
@@ -477,11 +485,6 @@ namespace GTL {
 
         __NodeDescriptor(typename Base::NodeBaseType* p_node)
             : Base(p_node), p_node_derived_(static_cast<NodeDerivedType*>(this->p_node_)) {}
-
-        NodeDescriptor& operator=(const NodeDescriptor& v) { p_node_derived_ = v.p_node_derived_; }
-
-        bool operator!=(const NodeDescriptor& v) const { return p_node_derived_ != v.p_node_derived_; }
-        bool operator==(const NodeDescriptor& v) const { return p_node_derived_ == v.p_node_derived_; }
 
         std::size_t degree() const { return this->p_node_derived_->incidents_.size(); }
 
@@ -542,11 +545,6 @@ namespace GTL {
 
         __NodeDescriptor(typename Base::NodeBaseType* p_node)
             : Base(p_node), p_node_derived_(static_cast<NodeDerivedType*>(this->p_node_)) {}
-
-        NodeDescriptor& operator=(const NodeDescriptor& v) { p_node_derived_ = v.p_node_derived_; }
-
-        bool operator!=(const NodeDescriptor& v) const { return p_node_derived_ != v.p_node_derived_; }
-        bool operator==(const NodeDescriptor& v) const { return p_node_derived_ == v.p_node_derived_; }
 
         std::size_t indegree()  const { return this->p_node_derived_->incomings_.size(); }
         std::size_t outdegree() const { return this->p_node_derived_->outgoings_.size(); }
@@ -653,6 +651,9 @@ namespace GTL {
     template <typename NodeTraits, typename EdgeTraits>
     class __EdgeDescriptorBase {
     public:
+        using EdgeDescriptorBase
+            = __EdgeDescriptorBase<NodeTraits, EdgeTraits>;
+    public:
         // Basic typedefs
         using EdgeBaseType   = EdgeBase<NodeTraits, EdgeTraits>;
         // Extract inner types
@@ -664,6 +665,9 @@ namespace GTL {
     public:
 
         __EdgeDescriptorBase(EdgeBaseType* p_edge) : p_edge_(p_edge) {}
+
+        bool operator!=(const EdgeDescriptorBase& e) const { return p_edge_ != e.p_edge_; }
+        bool operator==(const EdgeDescriptorBase& e) const { return p_edge_ == e.p_edge_; }
 
         // Get the name of this edge
         NameType name() const { return p_edge_->name_; }
@@ -699,11 +703,6 @@ namespace GTL {
         __EdgeDescriptor(typename Base::EdgeBaseType* p_edge)
             : Base(p_edge), p_edge_derived_(static_cast<EdgeDerivedType*>(this->p_edge_)) {}
 
-        EdgeDescriptor& operator=(const EdgeDescriptor& e) { p_edge_derived_ = e.p_edge_derived_; }
-
-        bool operator!=(const EdgeDescriptor& e) const { return p_edge_derived_ != e.p_edge_derived_; }
-        bool operator==(const EdgeDescriptor& e) const { return p_edge_derived_ == e.p_edge_derived_; }
-
         /**
          * Return the end node of this edge distinct from the node
          * "v"; an error occurs if e is not incident on v.
@@ -716,7 +715,9 @@ namespace GTL {
                 return NodeDescriptor(p_edge_derived_->p_node1_);
             else
                 throw std::runtime_error(
-                    "[Error] This edge is not incident on v.");
+                    format::sprintf(
+                        "[Error] Eedge {} is not incident on the node {}", "{}",
+                        this->name(), v.name()));
         }
 
         // Test whether this edge is incident on "v".
@@ -755,11 +756,6 @@ namespace GTL {
         __EdgeDescriptor(typename Base::EdgeBaseType* p_edge)
             : Base(p_edge), p_edge_derived_(static_cast<EdgeDerivedType*>(this->p_edge_)) {}
 
-        EdgeDescriptor& operator=(const EdgeDescriptor& e) { p_edge_derived_ = e.p_edge_derived_; }
-
-        bool operator!=(const EdgeDescriptor& e) const { return p_edge_derived_ != e.p_edge_derived_; }
-        bool operator==(const EdgeDescriptor& e) const { return p_edge_derived_ == e.p_edge_derived_; }
-
         /**
          * Return the end node of this edge distinct from the node
          * "v"; an error occurs if e is not incident on v.
@@ -772,7 +768,9 @@ namespace GTL {
                 return NodeDescriptor(p_edge_derived_->p_node_from_);
             else
                 throw std::runtime_error(
-                    "[Error] This edge is not incident on v.");
+                    format::sprintf(
+                        "[Error] Eedge {} is not incident on the node {}", "{}",
+                        this->name(), v.name()));
         }
 
         auto src() const -> NodeDescriptor { return NodeDescriptor(p_edge_derived_->p_node_from_); }
@@ -783,9 +781,40 @@ namespace GTL {
     //
     // [Edge descriptors] <\end>
 
+    /**
+     * 6. Graphs with adjacency list structure
+     * 
+     * All the nodes and edges in the graph are stored in the stl
+     * map; "node_map_" and "edge_map_", respectively.
+     * 
+     * Undirected)
+     * 
+     * Each node "u" holds a collection of pointers to its incident
+     * edges; I(u), and each edge stores two pointers to two end nodes.
+     * 
+     * When node "u" and "v" are connected by an edge "e", a pointer
+     * to the instance of "e" is inserted into I(u) and I(v), and
+     * the two inserted positions (two iterators) are recorded in the
+     * edge "e".
+     * 
+     * Directed)
+     * 
+     * Each node "u" holds a collection of pointers to its outgoing
+     * edges and incoming edges; Out(u), In(u), and each edge stores
+     * two pointers to two end nodes.
+     * 
+     * When node "u" and "v" are connected by an edge "e" (u->v), a
+     * pointer to the instance of "e" is inserted into Out(u) and In(v),
+     * and the two inserted positions (two iterators) are recorded in the
+     * edge "e".
+     */
+
+    // [Graphs] <\begin>
+    //
+
     template <typename NodeTraits, typename EdgeTraits, typename IsDirected = Undirected>
     class Graph {
-    public:
+    private:
         // Basic typedefs
         using NodeBaseType    = NodeBase<NodeTraits, EdgeTraits>;
         using EdgeBaseType    = EdgeBase<NodeTraits, EdgeTraits>;
@@ -803,7 +832,7 @@ namespace GTL {
     public:
         using NodeDescriptor  = __NodeDescriptor<NodeTraits, EdgeTraits, IsDirected>;
         using EdgeDescriptor  = __EdgeDescriptor<NodeTraits, EdgeTraits, IsDirected>;
-    public:
+    private:
         // Inner container types
         using NodeMapType
             = std::map<
@@ -846,7 +875,6 @@ namespace GTL {
             return seq;
         }
 
-
         /**
          * Insert a node with the given name-storage pair, and return
          * a new node descriptor associated with the newly inserted node.
@@ -858,7 +886,9 @@ namespace GTL {
 
             if (it.second == false)
                 throw std::runtime_error(
-                    "[Error] Node name is duplicated.");
+                    format::sprintf(
+                        "[Error] Node name is duplicated. {} == {}.", "{}",
+                        it.first->first, pair.first));
             p->this_in_node_map_ = it.first;
 
             return NodeDescriptor(p.get());
@@ -883,7 +913,9 @@ namespace GTL {
 
             if (it.second == false)
                 throw std::runtime_error(
-                    "[Error] Edge name is duplicated.");
+                    format::sprintf(
+                        "[Error] Edge name is duplicated. {} == {}.", "{}",
+                        it.first->first, pair.first));
             p->this_in_edge_map_ = it.first;
             
             this->_M_impl_hook_nodes(pair, p, node1, node2, IsDirected{});
@@ -908,6 +940,15 @@ namespace GTL {
 
     private:
 
+        /**
+         * Some inernal helper functions.
+         * 
+         * These auxiliaries are required because the scheme for inter-
+         * connecting or dis-connecting nodes and edges are quite different
+         * based on the type of graph; directed or not.
+         */
+
+        // Helper for insert_edge
         void _M_impl_hook_nodes(
             const std::pair<EdgeNameType, EdgeStorageType>& pair,
             std::shared_ptr<EdgeBaseType>& p,
@@ -921,13 +962,22 @@ namespace GTL {
             const NodeDescriptor& node2,
             Directed);
 
+        // Helper for remove_edge
         void _M_impl_unhook_nodes(EdgeDerivedType* p, Undirected);
         void _M_impl_unhook_nodes(EdgeDerivedType* p, Directed);
 
+        // Helper for remove_node
         void _M_impl_disconnect_node(const NodeDescriptor& v, Undirected);
         void _M_impl_disconnect_node(const NodeDescriptor& v, Directed);
 
     };
+
+    //
+    // [Graphs] <\end>
+
+    /**
+     * Auxiliaries
+     */
 
     template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
     void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_hook_nodes(
@@ -949,11 +999,11 @@ namespace GTL {
 
     template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
     void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_hook_nodes(
-                const std::pair<EdgeNameType, EdgeStorageType>& pair,
-                std::shared_ptr<EdgeBaseType>& p,
-                const NodeDescriptor& node1,
-                const NodeDescriptor& node2,
-                Directed)
+            const std::pair<EdgeNameType, EdgeStorageType>& pair,
+            std::shared_ptr<EdgeBaseType>& p,
+            const NodeDescriptor& node1,
+            const NodeDescriptor& node2,
+            Directed)
     {
         auto it1 = node1.p_node_derived_->outgoings_.insert(std::make_pair(pair.first, p));
         auto it2 = node2.p_node_derived_->incomings_.insert(std::make_pair(pair.first, p));
@@ -969,6 +1019,8 @@ namespace GTL {
     void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_unhook_nodes(EdgeDerivedType* p, Undirected)
     {
         static_cast<NodeDerivedType*>(p->p_node1_)->incidents_.erase(p->this1_in_incidents_);
+        if (p->p_node1_ == p->p_node2_)
+            return;
         static_cast<NodeDerivedType*>(p->p_node2_)->incidents_.erase(p->this2_in_incidents_);
     }
 
@@ -1011,7 +1063,5 @@ namespace GTL {
     }
 
 }   // namespace GTL
-
-
 
 #endif   // GTL_GRAPH_H
