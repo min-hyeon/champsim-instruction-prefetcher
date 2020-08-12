@@ -715,7 +715,7 @@ namespace GTL {
                 return NodeDescriptor(p_edge_derived_->p_node1_);
             else
                 throw std::runtime_error(
-                    format::sprintf(
+                    fmt::sprintf(
                         "[Error] Eedge {} is not incident on the node {}", "{}",
                         this->name(), v.name()));
         }
@@ -768,13 +768,18 @@ namespace GTL {
                 return NodeDescriptor(p_edge_derived_->p_node_from_);
             else
                 throw std::runtime_error(
-                    format::sprintf(
+                    fmt::sprintf(
                         "[Error] Eedge {} is not incident on the node {}", "{}",
                         this->name(), v.name()));
         }
 
         auto src() const -> NodeDescriptor { return NodeDescriptor(p_edge_derived_->p_node_from_); }
         auto dst() const -> NodeDescriptor { return NodeDescriptor(p_edge_derived_->p_node_to_); }
+
+        auto end_nodes() const -> std::pair<NodeDescriptor, NodeDescriptor>
+        {
+            return std::make_pair(src(), dst());
+        } 
 
     };
 
@@ -849,6 +854,42 @@ namespace GTL {
         EdgeMapType edge_map_;
     public:
 
+        Graph() = default;
+        Graph(const Graph<NodeTraits, EdgeTraits, IsDirected>& rhs) : Graph()
+        {
+            auto nodes = rhs.nodes();
+            for (const auto& v : nodes) {
+                this->insert_node({v.name(), v.storage()});
+            }
+            auto edges = rhs.edges();
+            for (const auto& e : edges) {
+                auto uv = e.end_nodes();
+                this->insert_edge({e.name(), e.storage()}, uv.first, uv.second);
+            }
+        }
+
+        // Find a node with given "name" and return node decriptor
+        // associated with the node found.
+        auto find_node(const NodeNameType& name) const -> NodeDescriptor
+        {
+            auto it = node_map_.find(name);
+            if (it == node_map_.end())
+                throw std::runtime_error(
+                    fmt::sprintf("[Error] Cannot find the node. name={}.", "{}", name));
+            return NodeDescriptor(it->second.get());
+        }
+
+        // Find an edge with given "name" and return edge decriptor
+        // associated with the edge found.
+        auto find_edge(const EdgeNameType& name) const -> EdgeDescriptor
+        {
+            auto it = edge_map_.find(name);
+            if (it == edge_map_.end())
+                throw std::runtime_error(
+                    fmt::sprintf("[Error] Cannot find the edge. name={}.", "{}", name));
+            return EdgeDescriptor(it->second.get());
+        }
+
         // Return the sequential container of all nodes in the graph
         template <template <typename ...> class Container = std::vector,
             typename std::enable_if<
@@ -886,7 +927,7 @@ namespace GTL {
 
             if (it.second == false)
                 throw std::runtime_error(
-                    format::sprintf(
+                    fmt::sprintf(
                         "[Error] Node name is duplicated. {} == {}.", "{}",
                         it.first->first, pair.first));
             p->this_in_node_map_ = it.first;
@@ -913,7 +954,7 @@ namespace GTL {
 
             if (it.second == false)
                 throw std::runtime_error(
-                    format::sprintf(
+                    fmt::sprintf(
                         "[Error] Edge name is duplicated. {} == {}.", "{}",
                         it.first->first, pair.first));
             p->this_in_edge_map_ = it.first;

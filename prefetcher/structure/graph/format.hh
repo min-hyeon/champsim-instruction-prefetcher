@@ -1,10 +1,10 @@
-#ifndef FORMAT_H
-#define FORMAT_H
+#ifndef THROW_H
+#define THROW_H
 
 #include <string>
 #include <sstream>
 
-namespace format {
+namespace fmt {
 
     template <typename ...Args>
     std::string sprintf_static(const char* format_expr, Args... args) {
@@ -116,6 +116,6 @@ namespace format {
         return buffer.str();
     }
 
-}   // namespace format
+}   // namespace fmt
 
-#endif   // FORMAT_H
+#endif   // THROW_H
