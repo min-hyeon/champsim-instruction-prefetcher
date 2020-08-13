@@ -45,15 +45,15 @@ namespace GTL {
      * 1. Type qualifiers
      * 
      * Each of node and edge instances is divided into three parts;
-     * connnector, storage, and name.
+     * connnector, attribute, and name.
      * 
      * The connector is a component that interconnects between edges
      * and nodes and between a map of edges and a map of nodes. 
      * 
-     * The storage is a component that holds a user-defined storage
-     * structure, and the storage type can be anything; for example
+     * The attribute is a component that holds a user-defined attribute
+     * structure, and the attribute type can be anything; for example
      * <\code>
-     *     class SomeStorage {
+     *     class SomeAttribute {
      *     private:
      *         std::int64_t weight_;     // weight of the edge
      *         std::int64_t capacity_;   // capacity of the edge
@@ -87,31 +87,31 @@ namespace GTL {
     };
 
     // Wrapper class that acts as a type-holder of a node's inner
-    // types; key(name), key comparator, and user-defined storage type.
+    // types; key(name), key comparator, and user-defined attribute type.
     // <\code>
     //     NodeTraits<
     //         Name<name-type-of-node, comparator-for-name-type>,
-    //         user-defined-storage-type>;
+    //         user-defined-attribute-type>;
     // <\endcode>
-    template <typename Name, typename Storage>
+    template <typename Name, typename Attribute>
     struct NodeTraits {
         typedef typename Name::KeyType      KeyType;
         typedef typename Name::KeyCompare   KeyCompare;
-        typedef Storage                     StorageType;
+        typedef Attribute                   AttributeType;
     };
 
     // Wrapper class that acts as a type-holder of a edge's inner
-    // types; key(name), key comparator, and user-defined storage type.
+    // types; key(name), key comparator, and user-defined attribute type.
     // <\code>
     //     EdgeTraits<
     //         Name<name-type-of-edge, comparator-for-name-type>,
-    //         user-defined-storage-type>;
+    //         user-defined-attribute-type>;
     // <\endcode>
-    template <typename Name, typename Storage>
+    template <typename Name, typename Attribute>
     struct EdgeTraits {
         typedef typename Name::KeyType      KeyType;
         typedef typename Name::KeyCompare   KeyCompare;
-        typedef Storage                     StorageType;
+        typedef Attribute                   AttributeType;
     };
 
     //
@@ -121,7 +121,7 @@ namespace GTL {
      * 2. Class hierarchy of node classes. (Inheritance)
      * 
      * Node<..., Undirected> and Node<..., Directed> each inherits 
-     * NodeBase<...> class, which holds "name" and "storage" instances
+     * NodeBase<...> class, which holds "name" and "attribute" instances
      * and useful typedefs for "connectors". The connectors are
      * implemented in the derived class, because they act differently
      * based on whether the graph is directed or not.
@@ -161,12 +161,12 @@ namespace GTL {
         friend class Graph;
     public:
         // Basic typedefs
-        using NodeBaseType = NodeBase<NodeTraits, EdgeTraits>;
-        using EdgeBaseType = EdgeBase<NodeTraits, EdgeTraits>;
+        using NodeBaseType  = NodeBase<NodeTraits, EdgeTraits>;
+        using EdgeBaseType  = EdgeBase<NodeTraits, EdgeTraits>;
         // Extract inner types
-        using NameType     = typename NodeTraits::KeyType;
-        using NameCompare  = typename NodeTraits::KeyCompare;
-        using StorageType  = typename NodeTraits::StorageType;
+        using NameType      = typename NodeTraits::KeyType;
+        using NameCompare   = typename NodeTraits::KeyCompare;
+        using AttributeType = typename NodeTraits::AttributeType;
     public:
         using LinkToMap
             = typename std::map<
@@ -184,9 +184,9 @@ namespace GTL {
         LinkToMap     this_in_node_map_;
     protected:
         NameType      name_;
-        StorageType   storage_;
+        AttributeType attribute_;
     public:
-        NodeBase(const NameType& name, const StorageType& storage) : name_(name), storage_(storage) {}
+        NodeBase(const NameType& name, const AttributeType& attribute) : name_(name), attribute_(attribute) {}
         ~NodeBase() { 
             GRAPH_DEBUG_PRINT(
                 std::cout << "Node " << name_ << " base instance is destructed.\n";
@@ -213,8 +213,8 @@ namespace GTL {
     private:
         typename Base::IncidentEdges incidents_;
     public:
-        Node(const typename Base::NameType& name, const typename Base::StorageType& storage)
-            : Base(name, storage), incidents_() {}
+        Node(const typename Base::NameType& name, const typename Base::AttributeType& attribute)
+            : Base(name, attribute), incidents_() {}
         ~Node() { 
             GRAPH_DEBUG_PRINT(
                 std::cout << "Node " << this->name_ << " derived (undirected) instance is destructed.\n";
@@ -237,8 +237,8 @@ namespace GTL {
         typename Base::IncidentEdges outgoings_;
         typename Base::IncidentEdges incomings_;
     public:
-        Node(const typename Base::NameType& name, const typename Base::StorageType& storage)
-            : Base(name, storage), outgoings_(), incomings_() {}
+        Node(const typename Base::NameType& name, const typename Base::AttributeType& attribute)
+            : Base(name, attribute), outgoings_(), incomings_() {}
         ~Node() {
             GRAPH_DEBUG_PRINT(
                 std::cout << "Node " << this->name_ << " derived (directed) instance is destructed.\n";
@@ -253,7 +253,7 @@ namespace GTL {
      * 3. Class hierarchy of edge classes. (Inheritance)
      * 
      * Edge<..., Undirected> and Edge<..., Directed> each inherits 
-     * EdgeBase<...> class, which holds "name" and "storage" instances
+     * EdgeBase<...> class, which holds "name" and "attribute" instances
      * and useful typedefs for "connectors". The connectors are
      * implemented in the derived class, because they act differently
      * based on whether the graph is directed or not.
@@ -301,12 +301,12 @@ namespace GTL {
         friend class Graph;
     public:
         // Basic typedefs
-        using NodeBaseType = NodeBase<NodeTraits, EdgeTraits>;
-        using EdgeBaseType = EdgeBase<NodeTraits, EdgeTraits>;
+        using NodeBaseType  = NodeBase<NodeTraits, EdgeTraits>;
+        using EdgeBaseType  = EdgeBase<NodeTraits, EdgeTraits>;
         // Extract inner types
-        using NameType     = typename EdgeTraits::KeyType;
-        using NameCompare  = typename EdgeTraits::KeyCompare;
-        using StorageType  = typename EdgeTraits::StorageType;
+        using NameType      = typename EdgeTraits::KeyType;
+        using NameCompare   = typename EdgeTraits::KeyCompare;
+        using AttributeType = typename EdgeTraits::AttributeType;
     public:
         using LinkToNode
             = std::shared_ptr<NodeBaseType>;
@@ -326,9 +326,9 @@ namespace GTL {
         LinkToMap     this_in_edge_map_;
     protected:
         NameType      name_;
-        StorageType   storage_;
+        AttributeType attribute_;
     public:
-        EdgeBase(const NameType& name, const StorageType& storage) : name_(name), storage_(storage) {}
+        EdgeBase(const NameType& name, const AttributeType& attribute) : name_(name), attribute_(attribute) {}
         ~EdgeBase() {
             GRAPH_DEBUG_PRINT(
                 std::cout << "Edge " << this->name_ << " base instance is destructed.\n";
@@ -358,8 +358,8 @@ namespace GTL {
             this1_in_incidents_{},
             this2_in_incidents_{};
     public:
-        Edge(const typename Base::NameType& name, const typename Base::StorageType& storage)
-            : Base(name, storage) {}
+        Edge(const typename Base::NameType& name, const typename Base::AttributeType& attribute)
+            : Base(name, attribute) {}
         ~Edge() {
             GRAPH_DEBUG_PRINT(
                 std::cout << "Edge " << this->name_ << " derived (undirected) instance is destructed.\n";
@@ -384,8 +384,8 @@ namespace GTL {
             this_in_outgoings_{},
             this_in_incomings_{};
     public:
-        Edge(const typename Base::NameType& name, const typename Base::StorageType& storage)
-            : Base(name, storage) {}
+        Edge(const typename Base::NameType& name, const typename Base::AttributeType& attribute)
+            : Base(name, attribute) {}
         ~Edge() {
             GRAPH_DEBUG_PRINT(
                 std::cout << "Edge " << this->name_ << " derived (directed) instance is destructed.\n";
@@ -418,13 +418,13 @@ namespace GTL {
      * descriptors behave like stl iterators, except that they don't
      * provide any iteration support.
      * 
-     * - operator*(): Return the copy of the storage associated
+     * - operator*(): Return the copy of the attribute associated
      *     with the node pointed by "p_node_".
      * 
      * - name(): Return the name of the corresponding node.
      * 
-     * - storage(): Return the referecne of the storage.
-     * - storage_copy(): Return the copy of the storage, behave like
+     * - attribute(): Return the referecne of the attribute.
+     * - attribute_copy(): Return the copy of the attribute, behave like
      *     operator*(). 
      */
 
@@ -442,7 +442,7 @@ namespace GTL {
         // Extract inner types
         using NameType       = typename NodeTraits::KeyType;
         using NameCompare    = typename NodeTraits::KeyCompare;
-        using StorageType    = typename NodeTraits::StorageType;
+        using AttributeType  = typename NodeTraits::AttributeType;
     protected:
         NodeBaseType* p_node_;
     public:
@@ -454,11 +454,11 @@ namespace GTL {
 
         // Get the name of this node
         NameType name() const { return p_node_->name_; }
-        // Get reference of the storage of this node
-        const StorageType& storage() const { return p_node_->storage_; }
-              StorageType& storage()       { return p_node_->storage_; }
-        // Get copy of the storage of this node
-        StorageType storage_copy() const { return p_node_->storage_; }
+        // Get reference of the attribute of this node
+        const AttributeType& attribute() const { return p_node_->attribute_; }
+              AttributeType& attribute()       { return p_node_->attribute_; }
+        // Get copy of the Attribute of this node
+        AttributeType attribute_copy() const { return p_node_->attribute_; }
     };
 
     template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
@@ -635,13 +635,13 @@ namespace GTL {
      * descriptors behave like stl iterators, except that they don't
      * provide any iteration support.
      * 
-     * - operator*(): Return the copy of the storage associated
+     * - operator*(): Return the copy of the attribute associated
      *     with the edge pointed by "p_edge_".
      * 
      * - name(): Return the name of the corresponding edge.
      * 
-     * - storage(): Return the referecne of the storage.
-     * - storage_copy(): Return the copy of the storage, behave like
+     * - attribute(): Return the referecne of the attribute.
+     * - attribute_copy(): Return the copy of the attribute, behave like
      *     operator*(). 
      */
 
@@ -659,7 +659,7 @@ namespace GTL {
         // Extract inner types
         using NameType       = typename EdgeTraits::KeyType;
         using NameCompare    = typename EdgeTraits::KeyCompare;
-        using StorageType    = typename EdgeTraits::StorageType;
+        using AttributeType  = typename EdgeTraits::AttributeType;
     protected:
         EdgeBaseType* p_edge_;
     public:
@@ -671,11 +671,11 @@ namespace GTL {
 
         // Get the name of this edge
         NameType name() const { return p_edge_->name_; }
-        // Get reference of the storage of this edge
-        const StorageType& storage() const { return p_edge_->storage_; }
-              StorageType& storage()       { return p_edge_->storage_; }
-        // Get copy of the storage of this edge
-        StorageType storage_copy() const { return p_edge_->storage_; }
+        // Get reference of the attribute of this edge
+        const AttributeType& attribute() const { return p_edge_->attribute_; }
+              AttributeType& attribute()       { return p_edge_->attribute_; }
+        // Get copy of the attribute of this edge
+        AttributeType attribute_copy() const { return p_edge_->attribute_; }
     };
 
     template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
@@ -821,19 +821,19 @@ namespace GTL {
     class Graph {
     private:
         // Basic typedefs
-        using NodeBaseType    = NodeBase<NodeTraits, EdgeTraits>;
-        using EdgeBaseType    = EdgeBase<NodeTraits, EdgeTraits>;
-        using NodeDerivedType = Node<NodeTraits, EdgeTraits, IsDirected>;
-        using EdgeDerivedType = Edge<NodeTraits, EdgeTraits, IsDirected>;
+        using NodeBaseType      = NodeBase<NodeTraits, EdgeTraits>;
+        using EdgeBaseType      = EdgeBase<NodeTraits, EdgeTraits>;
+        using NodeDerivedType   = Node<NodeTraits, EdgeTraits, IsDirected>;
+        using EdgeDerivedType   = Edge<NodeTraits, EdgeTraits, IsDirected>;
     public:
         // Extract inner types for node
-        using NodeNameType    = typename NodeTraits::KeyType;
-        using NodeNameCompare = typename NodeTraits::KeyCompare;
-        using NodeStorageType = typename NodeTraits::StorageType;
+        using NodeNameType      = typename NodeTraits::KeyType;
+        using NodeNameCompare   = typename NodeTraits::KeyCompare;
+        using NodeAttributeType = typename NodeTraits::AttributeType;
         // Extract inner types for edge
-        using EdgeNameType    = typename EdgeTraits::KeyType;
-        using EdgeNameCompare = typename EdgeTraits::KeyCompare;
-        using EdgeStorageType = typename EdgeTraits::StorageType;
+        using EdgeNameType      = typename EdgeTraits::KeyType;
+        using EdgeNameCompare   = typename EdgeTraits::KeyCompare;
+        using EdgeAttributeType = typename EdgeTraits::AttributeType;
     public:
         using NodeDescriptor  = __NodeDescriptor<NodeTraits, EdgeTraits, IsDirected>;
         using EdgeDescriptor  = __EdgeDescriptor<NodeTraits, EdgeTraits, IsDirected>;
@@ -859,12 +859,12 @@ namespace GTL {
         {
             auto nodes = rhs.nodes();
             for (const auto& v : nodes) {
-                this->insert_node({v.name(), v.storage()});
+                this->insert_node({v.name(), v.attribute()});
             }
             auto edges = rhs.edges();
             for (const auto& e : edges) {
                 auto uv = e.end_nodes();
-                this->insert_edge({e.name(), e.storage()}, uv.first, uv.second);
+                this->insert_edge({e.name(), e.attribute()}, uv.first, uv.second);
             }
         }
 
@@ -917,10 +917,10 @@ namespace GTL {
         }
 
         /**
-         * Insert a node with the given name-storage pair, and return
+         * Insert a node with the given name-attribute pair, and return
          * a new node descriptor associated with the newly inserted node.
          */
-        auto insert_node(const std::pair<NodeNameType, NodeStorageType>& pair) -> NodeDescriptor
+        auto insert_node(const std::pair<NodeNameType, NodeAttributeType>& pair) -> NodeDescriptor
         {
             std::shared_ptr<NodeBaseType> p{ new NodeDerivedType{pair.first, pair.second} };            
             auto it = node_map_.insert(std::make_pair(pair.first, p));
@@ -936,7 +936,7 @@ namespace GTL {
         }
 
         /**
-         * Insert an edge with the given name-storage pair and the two
+         * Insert an edge with the given name-attribute pair and the two
          * node descriptors, and return a new edge descriptor associated
          * with the newly inserted edge.
          * 
@@ -945,7 +945,7 @@ namespace GTL {
          * the direction; "node1 --> node2".
          */
         auto insert_edge(
-            const std::pair<EdgeNameType, EdgeStorageType>& pair,
+            const std::pair<EdgeNameType, EdgeAttributeType>& pair,
             const NodeDescriptor& node1,
             const NodeDescriptor& node2) -> EdgeDescriptor
         {
@@ -991,13 +991,13 @@ namespace GTL {
 
         // Helper for insert_edge
         void _M_impl_hook_nodes(
-            const std::pair<EdgeNameType, EdgeStorageType>& pair,
+            const std::pair<EdgeNameType, EdgeAttributeType>& pair,
             std::shared_ptr<EdgeBaseType>& p,
             const NodeDescriptor& node1,
             const NodeDescriptor& node2,
             Undirected);
         void _M_impl_hook_nodes(
-            const std::pair<EdgeNameType, EdgeStorageType>& pair,
+            const std::pair<EdgeNameType, EdgeAttributeType>& pair,
             std::shared_ptr<EdgeBaseType>& p,
             const NodeDescriptor& node1,
             const NodeDescriptor& node2,
@@ -1022,7 +1022,7 @@ namespace GTL {
 
     template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
     void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_hook_nodes(
-            const std::pair<EdgeNameType, EdgeStorageType>& pair,
+            const std::pair<EdgeNameType, EdgeAttributeType>& pair,
             std::shared_ptr<EdgeBaseType>& p,
             const NodeDescriptor& node1,
             const NodeDescriptor& node2,
@@ -1040,7 +1040,7 @@ namespace GTL {
 
     template <typename NodeTraits, typename EdgeTraits, typename IsDirected>
     void Graph<NodeTraits, EdgeTraits, IsDirected>::_M_impl_hook_nodes(
-            const std::pair<EdgeNameType, EdgeStorageType>& pair,
+            const std::pair<EdgeNameType, EdgeAttributeType>& pair,
             std::shared_ptr<EdgeBaseType>& p,
             const NodeDescriptor& node1,
             const NodeDescriptor& node2,
