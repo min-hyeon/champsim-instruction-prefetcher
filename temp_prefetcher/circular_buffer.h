@@ -34,7 +34,7 @@ namespace CB {
 			buffer_[rear_] = new_entry;
 			num_++;
 			BUFFER_DP(
-				std::cout << "[ENQUEUE] " << buffer_[rear_] << " to index " << rear_ << std::endl;
+				std::cout << "[ENQUEUE] 0x" << buffer_[rear_] << " to index " << rear_ << std::endl;
 				print_all();
 			)
 			rear_ = (rear_ + 1) % MAX_BUFFER_SIZE;
@@ -44,7 +44,7 @@ namespace CB {
 			T return_entry = buffer_[front_];
 			num_--;
 			BUFFER_DP(
-				std::cout << "[DEQUEUE] " << buffer_[front_] << " from index " << front_ << std::endl;
+				std::cout << "[DEQUEUE] 0x" << buffer_[front_] << " from index " << front_ << std::endl;
 				print_all();
 			)
 
@@ -60,7 +60,7 @@ namespace CB {
 				{	
 					return_ptr[i] = buffer_[i];
 					BUFFER_DP(
-						std::cout << "[DEQUEUE] " << buffer_[i] << " from index " << i << std::endl;
+						std::cout << "[DEQUEUE] 0x" << buffer_[i] << " from index " << i << std::endl;
 					)
 				}
 			}
@@ -70,14 +70,14 @@ namespace CB {
 				{
 					return_ptr[i] = buffer_[i];
 					BUFFER_DP(
-						std::cout << "[DEQUEUE] " << buffer_[i] << " from index " << i << std::endl;
+						std::cout << "[DEQUEUE] 0x" << buffer_[i] << " from index " << i << std::endl;
 					)
 				}
 				for (size_t i = 0; i < front_; i++)
 				{
 					return_ptr[i] = buffer_[i];
 					BUFFER_DP(
-						std::cout << "[DEQUEUE] " << buffer_[i] << " from index " << i << std::endl;
+						std::cout << "[DEQUEUE] 0x" << buffer_[i] << " from index " << i << std::endl;
 					)
 				}
 			}
