@@ -14,7 +14,8 @@
 #define LOG2_ST_SET 11
 #define ST_WAY 8
 
-#define RAS_ENTRY 4
+#define RAS_ENTRY 20
+#define RAS_TOP_N_ENTRY 4
 #define BHT_ENTRY 50
 
 using namespace std;
@@ -198,11 +199,15 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
     if (branch_type == BRANCH_DIRECT_CALL || branch_type == BRANCH_INDIRECT_CALL || branch_type == BRANCH_RETURN)
     {
         if (branch_type == BRANCH_DIRECT_CALL || branch_type == BRANCH_INDIRECT_CALL)
+        {
             return_address_stack.push_back(ip);
+            if (return_address_stack.size() > RAS_ENTRY)
+                return_address_stack.pop_front();
+        }
 
         uint64_t signature_set = 0;
         list<uint64_t>::reverse_iterator iter = return_address_stack.rbegin();
-        for (uint32_t i = 0; i < RAS_ENTRY; i++)
+        for (uint32_t i = 0; i < RAS_TOP_N_ENTRY; i++)
             signature_set ^= *iter++;
 
         uint64_t signature_tag = 0;
