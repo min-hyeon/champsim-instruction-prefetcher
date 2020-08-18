@@ -21,15 +21,15 @@
 #define CSIG_MAX 16
 #define L2_GHR_TRACK 8
 //#define L2_GHR_ON
-#define SIG_SHIFT  3
+#define SIG_SHIFT 3
 #define SIG_LENGTH 12
 #define SIG_MASK ((1 << SIG_LENGTH) - 1)
 
 #define BAD_MAX 7
 
-class SIGNATURE_TABLE {
+class SIGNATURE_TABLE
+{
 public:
-
     int valid,
         tag,
         last_block,
@@ -42,14 +42,16 @@ public:
         dirty[64],
         first_hit;
 
-    SIGNATURE_TABLE() {
+    SIGNATURE_TABLE()
+    {
         valid = 0;
         tag = 0;
         last_block = 0;
         signature = 0;
         lru = 0;
 
-        for (uint32_t i=0; i<64; i++) {
+        for (uint32_t i = 0; i < 64; i++)
+        {
             l2_pf[i] = 0;
             used[i] = 0;
             delta[i] = 0;
@@ -61,20 +63,23 @@ public:
     };
 };
 
-class PATTERN_TABLE {
+class PATTERN_TABLE
+{
 public:
     int delta,
         c_delta,
         c_sig;
 
-    PATTERN_TABLE() {
+    PATTERN_TABLE()
+    {
         delta = 0;
         c_delta = 0;
         c_sig = 0;
     };
 };
 
-class GLOBAL_HISTORY_REGISTER {
+class GLOBAL_HISTORY_REGISTER
+{
 public:
     int signature,
         path_conf,
@@ -82,7 +87,8 @@ public:
         oop_delta,
         lru;
 
-    GLOBAL_HISTORY_REGISTER() {
+    GLOBAL_HISTORY_REGISTER()
+    {
         signature = 0;
         path_conf = 0;
         last_block = 0;
@@ -95,7 +101,7 @@ extern PATTERN_TABLE L2_PT[NUM_CPUS][L2_PT_SET][L2_PT_WAY];
 extern GLOBAL_HISTORY_REGISTER L2_GHR[NUM_CPUS][L2_GHR_TRACK];
 extern int L2_ST_access[NUM_CPUS], L2_ST_hit[NUM_CPUS], L2_ST_invalid[NUM_CPUS], L2_ST_miss[NUM_CPUS];
 extern int L2_PT_access[NUM_CPUS], L2_PT_hit[NUM_CPUS], L2_PT_invalid[NUM_CPUS], L2_PT_miss[NUM_CPUS];
-extern int l2_sig_dist[NUM_CPUS][1<<SIG_LENGTH];
+extern int l2_sig_dist[NUM_CPUS][1 << SIG_LENGTH];
 
 unsigned int get_new_signature(unsigned int old_signature, int curr_delta);
 int L2_ST_update(uint32_t cpu, uint64_t addr);
@@ -112,7 +118,7 @@ GLOBAL_HISTORY_REGISTER L2_GHR[NUM_CPUS][L2_GHR_TRACK];
 
 int L2_ST_access[NUM_CPUS], L2_ST_hit[NUM_CPUS], L2_ST_invalid[NUM_CPUS], L2_ST_miss[NUM_CPUS];
 int L2_PT_access[NUM_CPUS], L2_PT_hit[NUM_CPUS], L2_PT_invalid[NUM_CPUS], L2_PT_miss[NUM_CPUS];
-int l2_sig_dist[NUM_CPUS][1<<SIG_LENGTH];
+int l2_sig_dist[NUM_CPUS][1 << SIG_LENGTH];
 
 unsigned int get_new_signature(unsigned int old_signature, int curr_delta)
 {
@@ -122,7 +128,7 @@ unsigned int get_new_signature(unsigned int old_signature, int curr_delta)
     unsigned int new_signature = 0;
     int sig_delta = curr_delta;
     if (sig_delta < 0)
-        sig_delta = 64 + curr_delta*(-1);
+        sig_delta = 64 + curr_delta * (-1);
     new_signature = ((old_signature << SIG_SHIFT) ^ sig_delta) & SIG_MASK;
     if (new_signature == 0)
     {
@@ -146,12 +152,15 @@ int L2_ST_update(uint32_t cpu, uint64_t addr)
     SIGNATURE_TABLE *table = L2_ST[cpu][L2_ST_idx];
     int delta_buffer = 0, sig_buffer = 0;
 
-    for (match=0; match<L2_ST_WAY; match++) {
-        if (table[match].valid && (table[match].tag == tag)) { // Hit 
+    for (match = 0; match < L2_ST_WAY; match++)
+    {
+        if (table[match].valid && (table[match].tag == tag))
+        {                                                        // Hit
             delta_buffer = curr_block - table[match].last_block; // Buffer current delta
-            sig_buffer = table[match].signature; // Buffer old signature
+            sig_buffer = table[match].signature;                 // Buffer old signature
 
-            if (table[match].signature == 0) { // First hit in L2_ST
+            if (table[match].signature == 0)
+            { // First hit in L2_ST
                 // We cannot associate delta pattern with signature when we see "the first hit in L2_ST"
                 // At this point, all we know about this page is "the first accessed offset"
                 // We don't have any delta information that can be a part of signature
@@ -159,20 +168,22 @@ int L2_ST_update(uint32_t cpu, uint64_t addr)
 
                 int sig_delta = curr_block - table[match].last_block;
                 if (sig_delta < 0)
-                    sig_delta = 64 + (curr_block - table[match].last_block)*(-1);
+                    sig_delta = 64 + (curr_block - table[match].last_block) * (-1);
                 table[match].signature = sig_delta & SIG_MASK; // This is the first signature
                 table[match].first_hit = 1;
                 l2_sig_dist[cpu][table[match].signature]++;
 
                 if (warmup_complete[cpu])
                     L2_PF_DEBUG(printf("ST_hit_first cpu: %d cl_addr: %lx page: %lx block: %d init_sig: %x delta: %d\n",
-                        cpu, addr >> LOG2_BLOCK_SIZE, curr_page, curr_block, table[match].signature, delta_buffer));
+                                       cpu, addr >> LOG2_BLOCK_SIZE, curr_page, curr_block, table[match].signature, delta_buffer));
             }
-            else {
+            else
+            {
                 hit = 1;
                 table[match].first_hit = 0;
 
-                if (delta_buffer) {
+                if (delta_buffer)
+                {
                     // This is non-speculative information tracked from actual L2 cache demand
                     // Now, the old signature will be associated with current delta
                     L2_PT_update(cpu, sig_buffer, delta_buffer);
@@ -182,7 +193,7 @@ int L2_ST_update(uint32_t cpu, uint64_t addr)
 
                 if (warmup_complete[cpu])
                     L2_PF_DEBUG(printf("ST_hit cpu: %d cl_addr: %lx page: %lx block: %d old_sig: %x delta: %d\n",
-                        cpu, addr >> LOG2_BLOCK_SIZE, curr_page, curr_block, sig_buffer, delta_buffer));
+                                       cpu, addr >> LOG2_BLOCK_SIZE, curr_page, curr_block, sig_buffer, delta_buffer));
 
                 // Update signature
                 int new_signature = get_new_signature(sig_buffer, delta_buffer);
@@ -192,21 +203,26 @@ int L2_ST_update(uint32_t cpu, uint64_t addr)
 
             // Update last_block
             table[match].last_block = curr_block;
-            L2_ST_hit[cpu]++; L2_ST_access[cpu]++;
+            L2_ST_hit[cpu]++;
+            L2_ST_access[cpu]++;
             break;
         }
     }
 
-    if (match == L2_ST_WAY) {
-        for (match=0; match<L2_ST_WAY; match++) {
-            if (table[match].valid == 0) { // Invalid
+    if (match == L2_ST_WAY)
+    {
+        for (match = 0; match < L2_ST_WAY; match++)
+        {
+            if (table[match].valid == 0)
+            { // Invalid
                 // Update metadata
                 table[match].valid = 1;
                 table[match].tag = tag;
                 table[match].signature = 0;
                 table[match].first_hit = 0;
                 table[match].last_block = curr_block;
-                L2_ST_invalid[cpu]++; L2_ST_access[cpu]++;
+                L2_ST_invalid[cpu]++;
+                L2_ST_access[cpu]++;
 
                 if (warmup_complete[cpu])
                     L2_PF_DEBUG(printf("ST_invalid cpu: %d cl_addr: %lx page: %lx block: %d\n", cpu, addr >> LOG2_BLOCK_SIZE, curr_page, curr_block));
@@ -215,10 +231,12 @@ int L2_ST_update(uint32_t cpu, uint64_t addr)
         }
     }
 
-    if (match == L2_ST_WAY) { // Miss
+    if (match == L2_ST_WAY)
+    { // Miss
         // Search for LRU victim
-        for (match=0; match<L2_ST_WAY; match++) {
-            if (table[match].lru == (L2_ST_WAY-1))
+        for (match = 0; match < L2_ST_WAY; match++)
+        {
+            if (table[match].lru == (L2_ST_WAY - 1))
                 break;
         }
 
@@ -229,42 +247,48 @@ int L2_ST_update(uint32_t cpu, uint64_t addr)
         table[match].first_hit = 0;
         table[match].last_block = curr_block;
 
-        for (int i=0; i<64; i++) {
+        for (int i = 0; i < 64; i++)
+        {
             table[match].l2_pf[i] = 0;
             table[match].used[i] = 0;
         }
 
         if (warmup_complete[cpu])
             L2_PF_DEBUG(printf("ST_miss cpu: %d cl_addr: %lx page: %lx block: %d lru: %d\n", cpu, addr >> LOG2_BLOCK_SIZE, curr_page, curr_block, table[match].lru));
-        L2_ST_miss[cpu]++; L2_ST_access[cpu]++;
+        L2_ST_miss[cpu]++;
+        L2_ST_access[cpu]++;
 
-        #ifdef L2_GHR_ON
+#ifdef L2_GHR_ON
         // Check GHR
         int ghr_max = 0, ghr_idx = -1, spec_block = 0, spec_sig = 0;
-        for (int i=0; i<L2_GHR_TRACK; i++) {
+        for (int i = 0; i < L2_GHR_TRACK; i++)
+        {
             spec_block = L2_GHR[cpu][i].last_block + L2_GHR[cpu][i].oop_delta;
             if (spec_block >= 64)
                 spec_block -= 64;
             else if (spec_block < 0)
                 spec_block += 64;
-            if ((spec_block == curr_block) && (ghr_max <= L2_GHR[cpu][i].path_conf)) {
+            if ((spec_block == curr_block) && (ghr_max <= L2_GHR[cpu][i].path_conf))
+            {
                 ghr_max = L2_GHR[cpu][i].path_conf;
                 ghr_idx = i;
                 spec_sig = get_new_signature(L2_GHR[cpu][i].signature, L2_GHR[cpu][i].oop_delta);
                 if (warmup_complete[cpu])
                     L2_PF_DEBUG(printf("cpu: %d OOP_match  L2_GHR[%d]  signature: %x  path_conf: %d  last_block: %d  oop_delta: %d  spec_block: %d == curr_block: %d  spec_sig: %x\n",
-                        cpu, i, L2_GHR[cpu][i].signature, L2_GHR[cpu][i].path_conf, L2_GHR[cpu][i].last_block,
-                        L2_GHR[cpu][i].oop_delta, spec_block, curr_block, spec_sig));
+                                       cpu, i, L2_GHR[cpu][i].signature, L2_GHR[cpu][i].path_conf, L2_GHR[cpu][i].last_block,
+                                       L2_GHR[cpu][i].oop_delta, spec_block, curr_block, spec_sig));
             }
-            else {
+            else
+            {
                 if (warmup_complete[cpu])
                     L2_PF_DEBUG(printf("cpu: %d OOP_unmatch  L2_GHR[%d]  signature: %x  path_conf: %d  last_block: %d  oop_delta: %d  spec_block: %d != curr_block: %d  spec_sig: %x\n",
-                        cpu, i, L2_GHR[cpu][i].signature, L2_GHR[cpu][i].path_conf, L2_GHR[cpu][i].last_block,
-                        L2_GHR[cpu][i].oop_delta, spec_block, curr_block, spec_sig));
+                                       cpu, i, L2_GHR[cpu][i].signature, L2_GHR[cpu][i].path_conf, L2_GHR[cpu][i].last_block,
+                                       L2_GHR[cpu][i].oop_delta, spec_block, curr_block, spec_sig));
             }
         }
 
-        if (ghr_idx >= 0) {
+        if (ghr_idx >= 0)
+        {
             // Speculatively update first page
             spec_sig = get_new_signature(L2_GHR[cpu][ghr_idx].signature, L2_GHR[cpu][ghr_idx].oop_delta);
 
@@ -272,14 +296,15 @@ int L2_ST_update(uint32_t cpu, uint64_t addr)
             table[match].signature = spec_sig;
             if (warmup_complete[cpu])
                 L2_PF_DEBUG(printf("cpu: %d spec_update  page: %x  sig: %3x  delta: %3d  curr_block: %2d  last_block[NA]: %2d\n",
-                    cpu, tag, spec_sig, L2_GHR[cpu][ghr_idx].oop_delta, curr_block, L2_GHR[cpu][ghr_idx].last_block));
+                                   cpu, tag, spec_sig, L2_GHR[cpu][ghr_idx].oop_delta, curr_block, L2_GHR[cpu][ghr_idx].last_block));
         }
-        #endif
+#endif
     }
 
     // Update LRU
     int position = table[match].lru;
-    for (int i=0; i<L2_ST_WAY; i++) {
+    for (int i = 0; i < L2_ST_WAY; i++)
+    {
         if (table[i].lru < position)
             table[i].lru++;
     }
@@ -300,11 +325,13 @@ int L2_ST_check(uint32_t cpu, uint64_t addr)
 
     SIGNATURE_TABLE *table = L2_ST[cpu][L2_ST_idx];
 
-    for (match=0; match<L2_ST_WAY; match++) {
-        if (table[match].valid && (table[match].tag == tag)) {
+    for (match = 0; match < L2_ST_WAY; match++)
+    {
+        if (table[match].valid && (table[match].tag == tag))
+        {
             if (warmup_complete[cpu])
                 L2_PF_DEBUG(printf("ST_check found cpu: %d cl_addr: %lx page: %lx block: %ld old_sig: %x last_block: %d\n",
-                    cpu, addr >> LOG2_BLOCK_SIZE, curr_page, (addr >> LOG2_BLOCK_SIZE) & 0x3F, table[match].signature, table[match].last_block));
+                                   cpu, addr >> LOG2_BLOCK_SIZE, curr_page, (addr >> LOG2_BLOCK_SIZE) & 0x3F, table[match].signature, table[match].last_block));
             return match;
         }
     }
@@ -326,30 +353,31 @@ void L2_PT_update(uint32_t cpu, int signature, int delta)
     if (table[0].c_sig == (CSIG_MAX))
     {
         table[0].c_sig = CSIG_MAX >> 1;
-        for (int i = 0; i<L2_PT_WAY; i++)
+        for (int i = 0; i < L2_PT_WAY; i++)
             table[i].c_delta = table[i].c_delta >> 1;
         if (warmup_complete[cpu])
             L2_PF_DEBUG(printf("PT_sig: %4x cpu: %d c_sig saturated sig_total: %d => %d\n", L2_PT_idx, cpu, CSIG_MAX, table[0].c_sig));
     }
 
     int match;
-    for (match=0; match<L2_PT_WAY; match++)
+    for (match = 0; match < L2_PT_WAY; match++)
     {
-        if (table[match].delta == delta) // Hit 
+        if (table[match].delta == delta) // Hit
         {
             table[match].c_delta++;
 
             if (warmup_complete[cpu])
                 L2_PF_DEBUG(printf("PT_sig: %4x cpu: %d update_hit delta[%d]: %2d (%d / %d)\n",
-                    signature, cpu, match, table[match].delta, table[match].c_delta, table[0].c_sig));
-            L2_PT_hit[cpu]++; L2_PT_access[cpu]++;
+                                   signature, cpu, match, table[match].delta, table[match].c_delta, table[0].c_sig));
+            L2_PT_hit[cpu]++;
+            L2_PT_access[cpu]++;
             break;
         }
     }
 
     if (match == L2_PT_WAY)
     {
-        for (match=0; match<L2_PT_WAY; match++)
+        for (match = 0; match < L2_PT_WAY; match++)
         {
             if (table[match].delta == 0) // Invalid
             {
@@ -359,8 +387,9 @@ void L2_PT_update(uint32_t cpu, int signature, int delta)
 
                 if (warmup_complete[cpu])
                     L2_PF_DEBUG(printf("PT_sig: %4x cpu: %d update_invalid delta[%d]: %2d (%d / %d)\n",
-                        signature, cpu, match, table[match].delta, table[match].c_delta, table[0].c_sig));
-                L2_PT_invalid[cpu]++; L2_PT_access[cpu]++;
+                                       signature, cpu, match, table[match].delta, table[match].c_delta, table[0].c_sig));
+                L2_PT_invalid[cpu]++;
+                L2_PT_access[cpu]++;
                 break;
             }
         }
@@ -371,7 +400,7 @@ void L2_PT_update(uint32_t cpu, int signature, int delta)
         // Search for the lowest counter
         int min_idx = -1;
         int min_val = CDELTA_MAX;
-        for (match=0; match<L2_PT_WAY; match++)
+        for (match = 0; match < L2_PT_WAY; match++)
         {
             if (table[match].c_delta < min_val)
             {
@@ -387,13 +416,14 @@ void L2_PT_update(uint32_t cpu, int signature, int delta)
 
         if (warmup_complete[cpu])
             L2_PF_DEBUG(printf("PT_sig: %4x cpu: %d update_miss delta[%d]: %2d (%d / %d)\n",
-                signature, cpu, match, table[match].delta, table[match].c_delta, table[0].c_sig));
-        L2_PT_miss[cpu]++; L2_PT_access[cpu]++;
+                               signature, cpu, match, table[match].delta, table[match].c_delta, table[0].c_sig));
+        L2_PT_miss[cpu]++;
+        L2_PT_access[cpu]++;
     }
 }
 
 // TODO: this functino should be moved to the replacement policy file
-// Check sampler 
+// Check sampler
 void notify_sampler(uint32_t cpu, int64_t address, int dirty, int useful)
 {
     /*

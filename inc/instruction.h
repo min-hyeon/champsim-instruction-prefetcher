@@ -1,7 +1,6 @@
 #ifndef INSTRUCTION_H
 #define INSTRUCTION_H
 
-
 // instruction format
 #define ROB_SIZE 352
 #define LQ_SIZE 128
@@ -16,20 +15,20 @@
 #define REG_INSTRUCTION_POINTER 26
 
 // branch types
-#define NOT_BRANCH           0
-#define BRANCH_DIRECT_JUMP   1
-#define BRANCH_INDIRECT      2
-#define BRANCH_CONDITIONAL   3
-#define BRANCH_DIRECT_CALL   4
+#define NOT_BRANCH 0
+#define BRANCH_DIRECT_JUMP 1
+#define BRANCH_INDIRECT 2
+#define BRANCH_CONDITIONAL 3
+#define BRANCH_DIRECT_CALL 4
 #define BRANCH_INDIRECT_CALL 5
-#define BRANCH_RETURN        6
-#define BRANCH_OTHER         7
+#define BRANCH_RETURN 6
+#define BRANCH_OTHER 7
 
 #include "set.h"
 
-class input_instr {
+class input_instr
+{
 public:
-
     // instruction pointer or PC (Program Counter)
     uint64_t ip;
 
@@ -38,31 +37,34 @@ public:
     uint8_t branch_taken;
 
     uint8_t destination_registers[NUM_INSTR_DESTINATIONS]; // output registers
-    uint8_t source_registers[NUM_INSTR_SOURCES]; // input registers
+    uint8_t source_registers[NUM_INSTR_SOURCES];           // input registers
 
     uint64_t destination_memory[NUM_INSTR_DESTINATIONS]; // output memory
-    uint64_t source_memory[NUM_INSTR_SOURCES]; // input memory
+    uint64_t source_memory[NUM_INSTR_SOURCES];           // input memory
 
-    input_instr() {
+    input_instr()
+    {
         ip = 0;
         is_branch = 0;
         branch_taken = 0;
 
-        for (uint32_t i=0; i<NUM_INSTR_SOURCES; i++) {
+        for (uint32_t i = 0; i < NUM_INSTR_SOURCES; i++)
+        {
             source_registers[i] = 0;
             source_memory[i] = 0;
         }
 
-        for (uint32_t i=0; i<NUM_INSTR_DESTINATIONS; i++) {
+        for (uint32_t i = 0; i < NUM_INSTR_DESTINATIONS; i++)
+        {
             destination_registers[i] = 0;
             destination_memory[i] = 0;
         }
     };
 };
 
-class cloudsuite_instr {
+class cloudsuite_instr
+{
 public:
-
     // instruction pointer or PC (Program Counter)
     uint64_t ip;
 
@@ -71,24 +73,27 @@ public:
     uint8_t branch_taken;
 
     uint8_t destination_registers[NUM_INSTR_DESTINATIONS_SPARC]; // output registers
-    uint8_t source_registers[NUM_INSTR_SOURCES]; // input registers
+    uint8_t source_registers[NUM_INSTR_SOURCES];                 // input registers
 
     uint64_t destination_memory[NUM_INSTR_DESTINATIONS_SPARC]; // output memory
-    uint64_t source_memory[NUM_INSTR_SOURCES]; // input memory
+    uint64_t source_memory[NUM_INSTR_SOURCES];                 // input memory
 
     uint8_t asid[2];
 
-    cloudsuite_instr() {
+    cloudsuite_instr()
+    {
         ip = 0;
         is_branch = 0;
         branch_taken = 0;
 
-        for (uint32_t i=0; i<NUM_INSTR_SOURCES; i++) {
+        for (uint32_t i = 0; i < NUM_INSTR_SOURCES; i++)
+        {
             source_registers[i] = 0;
             source_memory[i] = 0;
         }
 
-        for (uint32_t i=0; i<NUM_INSTR_DESTINATIONS_SPARC; i++) {
+        for (uint32_t i = 0; i < NUM_INSTR_DESTINATIONS_SPARC; i++)
+        {
             destination_registers[i] = 0;
             destination_memory[i] = 0;
         }
@@ -98,7 +103,8 @@ public:
     };
 };
 
-class ooo_model_instr {
+class ooo_model_instr
+{
 public:
     uint64_t instr_id,
         ip,
@@ -138,20 +144,20 @@ public:
 
     uint8_t destination_registers[NUM_INSTR_DESTINATIONS_SPARC]; // output registers
 
-    uint8_t source_registers[NUM_INSTR_SOURCES]; // input registers 
+    uint8_t source_registers[NUM_INSTR_SOURCES]; // input registers
 
     // these are instruction ids of other instructions in the window
     //int64_t registers_instrs_i_depend_on[NUM_INSTR_SOURCES];
     // these are indices of instructions in the window that depend on me
     //uint8_t registers_instrs_depend_on_me[ROB_SIZE], registers_index_depend_on_me[ROB_SIZE][NUM_INSTR_SOURCES];
     fastset
-        registers_instrs_depend_on_me, registers_index_depend_on_me[NUM_INSTR_SOURCES];
-
+        registers_instrs_depend_on_me,
+        registers_index_depend_on_me[NUM_INSTR_SOURCES];
 
     // memory addresses that may cause dependencies between instructions
     uint64_t instruction_pa, data_pa, virtual_address, physical_address;
     uint64_t destination_memory[NUM_INSTR_DESTINATIONS_SPARC]; // output memory
-    uint64_t source_memory[NUM_INSTR_SOURCES]; // input memory
+    uint64_t source_memory[NUM_INSTR_SOURCES];                 // input memory
     //int source_memory_outstanding[NUM_INSTR_SOURCES];  // a value of 2 here means the load hasn't been issued yet, 1 means it has been issued, but not returned yet, and 0 means it has returned
 
     // keep around a record of what the original virtual addresses were
@@ -169,7 +175,8 @@ public:
         sq_index[NUM_INSTR_DESTINATIONS_SPARC],
         forwarding_index[NUM_INSTR_DESTINATIONS_SPARC];
 
-    ooo_model_instr() {
+    ooo_model_instr()
+    {
         instr_id = 0;
         ip = 0;
         fetch_producer = 0;
@@ -210,7 +217,8 @@ public:
         num_mem_ops = 0;
         num_reg_dependent = 0;
 
-        for (uint32_t i=0; i<NUM_INSTR_SOURCES; i++) {
+        for (uint32_t i = 0; i < NUM_INSTR_SOURCES; i++)
+        {
             source_registers[i] = 0;
             source_memory[i] = 0;
             source_virtual_address[i] = 0;
@@ -219,7 +227,8 @@ public:
             reg_RAW_checked[i] = 0;
         }
 
-        for (uint32_t i=0; i<NUM_INSTR_DESTINATIONS_SPARC; i++) {
+        for (uint32_t i = 0; i < NUM_INSTR_DESTINATIONS_SPARC; i++)
+        {
             destination_memory[i] = 0;
             destination_registers[i] = 0;
             destination_virtual_address[i] = 0;
@@ -228,7 +237,7 @@ public:
             forwarding_index[i] = 0;
         }
 
-        #if 0
+#if 0
         for (uint32_t i=0; i<ROB_SIZE; i++) {
             registers_instrs_depend_on_me[i] = 0;
             memory_instrs_depend_on_me[i] = 0;
@@ -236,7 +245,7 @@ public:
             for (uint32_t j=0; j<NUM_INSTR_SOURCES; j++)
                 registers_index_depend_on_me[i][j] = 0;
         }
-        #endif
+#endif
     };
 
     void print_instr()
@@ -244,22 +253,22 @@ public:
         cout << "*** " << instr_id << " ***" << endl;
         cout << hex << "0x" << (uint64_t)ip << dec << endl;
         cout << (uint32_t)is_branch << " " << (uint32_t)branch_taken << endl;
-        for (uint32_t i=0; i<NUM_INSTR_SOURCES; i++)
+        for (uint32_t i = 0; i < NUM_INSTR_SOURCES; i++)
         {
             cout << (uint32_t)source_registers[i] << " ";
         }
         cout << endl;
-        for (uint32_t i=0; i<NUM_INSTR_SOURCES; i++)
+        for (uint32_t i = 0; i < NUM_INSTR_SOURCES; i++)
         {
             cout << hex << "0x" << (uint32_t)source_memory[i] << dec << " ";
         }
         cout << endl;
-        for (uint32_t i=0; i<NUM_INSTR_DESTINATIONS; i++)
+        for (uint32_t i = 0; i < NUM_INSTR_DESTINATIONS; i++)
         {
             cout << (uint32_t)destination_registers[i] << " ";
         }
         cout << endl;
-        for (uint32_t i=0; i<NUM_INSTR_DESTINATIONS; i++)
+        for (uint32_t i = 0; i < NUM_INSTR_DESTINATIONS; i++)
         {
             cout << hex << "0x" << (uint32_t)destination_memory[i] << dec << " ";
         }

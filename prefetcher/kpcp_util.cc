@@ -290,10 +290,10 @@ void L2_PT_update(uint32_t cpu, int signature, int delta)
 */
 
 // TODO: this functino should be moved to the replacement policy file
-// Check sampler 
+// Check sampler
 //void notify_sampler(uint32_t cpu, int64_t address, int dirty, int useful)
 //{
-    /*
+/*
     int set = llc_get_set(address);
     int s_idx = is_it_sampled(set);
 
