@@ -70,3 +70,38 @@ uint32_t SIGNATURE_TABLE<T>::check_hit(uint64_t signature)
 
     return way;
 }
+
+template <typename T>
+void SIGNATURE_TABLE<T>::handle_read()
+{
+}
+
+template <typename T>
+void SIGNATURE_TABLE<T>::handle_fill(uint64_t signature, T data)
+{
+    uint32_t set = get_set(signature),
+             way = get_way(signature, set);
+
+    if (way < ST_WAY)
+    {
+        block_[set][way].data_ = data;
+
+        hit_++;
+    }
+    else
+    {
+        way = lru_victim(signature, set);
+
+        block_[set][way].valid_ = true;
+        block_[set][way].tag_ = (signature << LOG2_ST_SET) >> LOG2_ST_SET;
+        lru_update(set, way);
+
+        miss_++;
+    }
+    access_++;
+}
+
+template <typename T>
+void SIGNATURE_TABLE<T>::handle_prefetch()
+{
+}

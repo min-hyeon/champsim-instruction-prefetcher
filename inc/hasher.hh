@@ -79,6 +79,10 @@ public:
     void lru_update(uint32_t set, uint32_t way);
 
     uint32_t check_hit(uint64_t signature);
+
+    void handle_read(),
+        handle_fill(uint64_t signature, T data),
+        handle_prefetch();
 };
 
 #endif
