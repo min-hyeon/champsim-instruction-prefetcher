@@ -193,6 +193,8 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data
         block_[set][way].valid_ = true;
         block_[set][way].tag_ = (signature >> LOG2_ST_SET);
         lru_update(set, way);
+        block_[set][way].data_ = data;
+        block_[set][way].data_count_ = data_count;
 
         miss_++;
 
