@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #include "ooo_cpu.h"
+=======
+#include "../inc/ooo_cpu.h"
+>>>>>>> 89c2e752f3a416b0858ea51a5bc9fc38398366b3
 #include "circular_buffer.h"
 
 #include <list>
@@ -27,13 +31,17 @@ public:
     uint8_t valid_;
     uint64_t tag_;
     uint32_t lru_;
-    shared_ptr<uint64_t> data_;
+
+    shared_ptr<uint64_t[]> data_;
+    size_t data_count_;
 
     SignatureTableBlock()
     {
         valid_ = 0;
         tag_ = 0;
         lru_ = 0;
+
+        data_count_ = 0;
     };
 };
 
@@ -75,9 +83,7 @@ public:
 
     uint32_t check_hit(uint64_t signature);
 
-    void handle_read(),
-        handle_fill(uint64_t signature, shared_ptr<uint64_t> data),
-        handle_prefetch();
+    void handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data, size_t data_count);
 };
 
 uint32_t SignatureTable::get_set(uint64_t signature)
@@ -88,7 +94,7 @@ uint32_t SignatureTable::get_set(uint64_t signature)
 uint32_t SignatureTable::get_way(uint64_t signature, uint32_t set)
 {
     for (uint32_t way = 0; way < ST_WAY; way++)
-        if (block_[set][way].valid_ && (block_[set][way].tag_ == (signature >> LOG2_ST_SET) << LOG2_ST_SET))
+        if (block_[set][way].valid_ && block_[set][way].tag_ == (signature >> LOG2_ST_SET))
             return way;
     return ST_WAY;
 }
@@ -146,11 +152,7 @@ uint32_t SignatureTable::check_hit(uint64_t signature)
     return way;
 }
 
-void SignatureTable::handle_read()
-{
-}
-
-void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t> data)
+void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data, size_t data_count)
 {
     uint32_t set = get_set(signature),
              way = get_way(signature, set);
@@ -158,6 +160,7 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t> data)
     if (way < ST_WAY)
     {
         block_[set][way].data_ = data;
+        block_[set][way].data_count_ = data_count;
 
         hit_++;
 
@@ -169,7 +172,7 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t> data)
         way = lru_victim(signature, set);
 
         block_[set][way].valid_ = true;
-        block_[set][way].tag_ = (signature >> LOG2_ST_SET) << LOG2_ST_SET;
+        block_[set][way].tag_ = (signature >> LOG2_ST_SET);
         lru_update(set, way);
 
         miss_++;
@@ -179,14 +182,13 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t> data)
     access_++;
 }
 
-void SignatureTable::handle_prefetch()
-{
-}
-
 SignatureTable signature_table("SIGNATURE_TABLE", ST_SET, ST_WAY, ST_SET *ST_WAY);
 list<uint64_t> return_address_stack;
 list<uint64_t> branch_history_table;
+<<<<<<< HEAD
 uint64_t prev_signature = 0;
+=======
+>>>>>>> 89c2e752f3a416b0858ea51a5bc9fc38398366b3
 CB::CircularBuffer<uint64_t> *circular_buffer = new CB::CircularBuffer<uint64_t>();
 
 void O3_CPU::l1i_prefetcher_initialize()
@@ -217,11 +219,15 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
             signature_tag ^= *iter;
 
         uint64_t signature = (signature_set >> (64 - LOG2_ST_SET)) | (signature_tag << LOG2_ST_SET);
+<<<<<<< HEAD
         if(prev_signature != 0)
         {
             signature_table.handle_fill(prev_signature, circular_buffer->dequeue_all().first, circular_buffer->dequeue_all().second);
         }
         prev_signature = signature;
+=======
+        //signature_table.handle_fill(signature, data, data_count);
+>>>>>>> 89c2e752f3a416b0858ea51a5bc9fc38398366b3
 
         if (branch_type == BRANCH_RETURN)
             return_address_stack.pop_back();
@@ -238,7 +244,11 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
 
 void O3_CPU::l1i_prefetcher_cache_operate(uint64_t v_addr, uint8_t cache_hit, uint8_t prefetch_hit)
 {
+<<<<<<< HEAD
     if(cache_hit == 0)
+=======
+    if (cache_hit == 0)
+>>>>>>> 89c2e752f3a416b0858ea51a5bc9fc38398366b3
     {
         circular_buffer->enqueue(v_addr);
     }
