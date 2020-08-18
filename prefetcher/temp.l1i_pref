@@ -42,7 +42,7 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
             signature_table.handle_fill(prev_signature, circular_buffer.dequeue_all().first, circular_buffer.dequeue_all().second);
         prev_signature = signature;
 
-        if (branch_type == BRANCH_RETURN)
+        if (branch_type == BRANCH_RETURN && !return_address_stack.empty())
             return_address_stack.pop_back();
 
         branch_history_table.clear();

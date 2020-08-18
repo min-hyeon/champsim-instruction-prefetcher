@@ -11,7 +11,7 @@
 #define BUFFER_DP(x)
 #endif
 
-#define MAX_BUFFER_SIZE 5000
+#define MAX_BUFFER_SIZE 50
 
 namespace CB
 {
