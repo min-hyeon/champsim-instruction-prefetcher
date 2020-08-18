@@ -217,7 +217,7 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
             signature_tag ^= *iter;
 
         uint64_t signature = (signature_set >> (64 - LOG2_ST_SET)) | (signature_tag << LOG2_ST_SET);
-        signature_table.handle_fill(signature, miss_history);
+        signature_table.handle_fill(signature, circular_buffer->dequeue_all().first, circular_buffer->dequeue_all().second);
 
         if (branch_type == BRANCH_RETURN)
             return_address_stack.pop_back();
