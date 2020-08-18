@@ -31,7 +31,7 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
         for (list<uint64_t>::iterator iter = BHT.begin(); iter != BHT.end(); iter++)
             signature_tag ^= *iter;
 
-        uint64_t signature = (signature_set & ((1 << LOG2_ST_SET) - 1)) | (signature_tag << LOG2_ST_SET);
+        uint64_t signature = (signature_set >> (64 - LOG2_ST_SET)) | (signature_tag << LOG2_ST_SET);
         ST.handle_fill(signature, MISS_HISTORY);
 
         if (branch_type == BRANCH_RETURN)
