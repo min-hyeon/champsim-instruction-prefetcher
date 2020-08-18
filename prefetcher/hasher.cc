@@ -87,6 +87,9 @@ void SIGNATURE_TABLE<T>::handle_fill(uint64_t signature, T data)
         block_[set][way].data_ = data;
 
         hit_++;
+
+        HDP(cout << "[" << name_ << "] " << __func__ << hex << " signature: 0x" << signature << " tag: 0x" << block_[set][way].tag_ << " data: 0x" << block_[set][way].data_;
+            cout << dec << " hit! set: " << set << " way: " << way << " lru: " << block_[set][way].lru_;);
     }
     else
     {
@@ -97,6 +100,8 @@ void SIGNATURE_TABLE<T>::handle_fill(uint64_t signature, T data)
         lru_update(set, way);
 
         miss_++;
+
+        HDP(cout << "[" << name_ << "] " << __func__ << hex << " signature: 0x" << signature << dec << " miss! set: " << set << endl;);
     }
     access_++;
 }
