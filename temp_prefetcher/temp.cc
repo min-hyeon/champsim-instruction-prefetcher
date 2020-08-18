@@ -26,13 +26,17 @@ public:
     uint8_t valid_;
     uint64_t tag_;
     uint32_t lru_;
-    shared_ptr<uint64_t> data_;
+
+    shared_ptr<uint64_t[]> data_;
+    size_t data_count_;
 
     SignatureTableBlock()
     {
         valid_ = 0;
         tag_ = 0;
         lru_ = 0;
+
+        data_count_ = 0;
     };
 };
 
@@ -74,9 +78,7 @@ public:
 
     uint32_t check_hit(uint64_t signature);
 
-    void handle_read(),
-        handle_fill(uint64_t signature, shared_ptr<uint64_t> data),
-        handle_prefetch();
+    void handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data, size_t data_count);
 };
 
 uint32_t SignatureTable::get_set(uint64_t signature)
@@ -145,11 +147,7 @@ uint32_t SignatureTable::check_hit(uint64_t signature)
     return way;
 }
 
-void SignatureTable::handle_read()
-{
-}
-
-void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t> data)
+void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data, size_t data_count)
 {
     uint32_t set = get_set(signature),
              way = get_way(signature, set);
@@ -157,6 +155,7 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t> data)
     if (way < ST_WAY)
     {
         block_[set][way].data_ = data;
+        block_[set][way].data_count_ = data_count;
 
         hit_++;
 
@@ -178,14 +177,9 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t> data)
     access_++;
 }
 
-void SignatureTable::handle_prefetch()
-{
-}
-
 SignatureTable signature_table("SIGNATURE_TABLE", ST_SET, ST_WAY, ST_SET *ST_WAY);
 list<uint64_t> return_address_stack;
 list<uint64_t> branch_history_table;
-shared_ptr<uint64_t> miss_history;
 
 void O3_CPU::l1i_prefetcher_initialize()
 {
@@ -215,7 +209,7 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
             signature_tag ^= *iter;
 
         uint64_t signature = (signature_set >> (64 - LOG2_ST_SET)) | (signature_tag << LOG2_ST_SET);
-        signature_table.handle_fill(signature, miss_history);
+        //signature_table.handle_fill(signature, data, data_count);
 
         if (branch_type == BRANCH_RETURN)
             return_address_stack.pop_back();
