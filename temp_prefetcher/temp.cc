@@ -1,4 +1,5 @@
-#include "ooo_cpu.h"
+#include "../inc/ooo_cpu.h"
+#include "circular_buffer.h"
 
 #include <list>
 #include <memory>
@@ -89,7 +90,7 @@ uint32_t SignatureTable::get_set(uint64_t signature)
 uint32_t SignatureTable::get_way(uint64_t signature, uint32_t set)
 {
     for (uint32_t way = 0; way < ST_WAY; way++)
-        if (block_[set][way].valid_ && (block_[set][way].tag_ == (signature >> LOG2_ST_SET) << LOG2_ST_SET))
+        if (block_[set][way].valid_ && block_[set][way].tag_ == (signature >> LOG2_ST_SET))
             return way;
     return ST_WAY;
 }
@@ -167,7 +168,7 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data
         way = lru_victim(signature, set);
 
         block_[set][way].valid_ = true;
-        block_[set][way].tag_ = (signature >> LOG2_ST_SET) << LOG2_ST_SET;
+        block_[set][way].tag_ = (signature >> LOG2_ST_SET);
         lru_update(set, way);
 
         miss_++;
@@ -180,6 +181,7 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data
 SignatureTable signature_table("SIGNATURE_TABLE", ST_SET, ST_WAY, ST_SET *ST_WAY);
 list<uint64_t> return_address_stack;
 list<uint64_t> branch_history_table;
+CB::CircularBuffer<uint64_t> *circular_buffer = new CB::CircularBuffer<uint64_t>();
 
 void O3_CPU::l1i_prefetcher_initialize()
 {
@@ -226,6 +228,10 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
 
 void O3_CPU::l1i_prefetcher_cache_operate(uint64_t v_addr, uint8_t cache_hit, uint8_t prefetch_hit)
 {
+    if (cache_hit == 0)
+    {
+        circular_buffer->enqueue(v_addr);
+    }
 }
 
 void O3_CPU::l1i_prefetcher_cycle_operate()
