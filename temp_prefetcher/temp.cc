@@ -90,7 +90,7 @@ uint32_t SignatureTable::get_set(uint64_t signature)
 uint32_t SignatureTable::get_way(uint64_t signature, uint32_t set)
 {
     for (uint32_t way = 0; way < ST_WAY; way++)
-        if (block_[set][way].valid_ && (block_[set][way].tag_ == (signature >> LOG2_ST_SET) << LOG2_ST_SET))
+        if (block_[set][way].valid_ && block_[set][way].tag_ == (signature >> LOG2_ST_SET))
             return way;
     return ST_WAY;
 }
@@ -168,7 +168,7 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data
         way = lru_victim(signature, set);
 
         block_[set][way].valid_ = true;
-        block_[set][way].tag_ = (signature >> LOG2_ST_SET) << LOG2_ST_SET;
+        block_[set][way].tag_ = (signature >> LOG2_ST_SET);
         lru_update(set, way);
 
         miss_++;
