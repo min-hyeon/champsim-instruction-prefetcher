@@ -1,4 +1,5 @@
-#include "ooo_cpu.h"
+#include "../inc/ooo_cpu.h"
+#include "circular_buffer.h"
 
 #include <list>
 #include <memory>
@@ -180,6 +181,7 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data
 SignatureTable signature_table("SIGNATURE_TABLE", ST_SET, ST_WAY, ST_SET *ST_WAY);
 list<uint64_t> return_address_stack;
 list<uint64_t> branch_history_table;
+CB::CircularBuffer<uint64_t> *circular_buffer = new CB::CircularBuffer<uint64_t>();
 
 void O3_CPU::l1i_prefetcher_initialize()
 {
@@ -226,6 +228,10 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
 
 void O3_CPU::l1i_prefetcher_cache_operate(uint64_t v_addr, uint8_t cache_hit, uint8_t prefetch_hit)
 {
+    if (cache_hit == 0)
+    {
+        circular_buffer->enqueue(v_addr);
+    }
 }
 
 void O3_CPU::l1i_prefetcher_cycle_operate()
