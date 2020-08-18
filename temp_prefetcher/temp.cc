@@ -186,7 +186,7 @@ void SignatureTable::handle_prefetch()
 SignatureTable signature_table("SIGNATURE_TABLE", ST_SET, ST_WAY, ST_SET *ST_WAY);
 list<uint64_t> return_address_stack;
 list<uint64_t> branch_history_table;
-shared_ptr<uint64_t> miss_history;
+uint64_t prev_signature = 0;
 CB::CircularBuffer<uint64_t> *circular_buffer = new CB::CircularBuffer<uint64_t>();
 
 void O3_CPU::l1i_prefetcher_initialize()
@@ -217,7 +217,11 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
             signature_tag ^= *iter;
 
         uint64_t signature = (signature_set >> (64 - LOG2_ST_SET)) | (signature_tag << LOG2_ST_SET);
-        signature_table.handle_fill(signature, circular_buffer->dequeue_all().first, circular_buffer->dequeue_all().second);
+        if(prev_signature != 0)
+        {
+            signature_table.handle_fill(prev_signature, circular_buffer->dequeue_all().first, circular_buffer->dequeue_all().second);
+        }
+        prev_signature = signature;
 
         if (branch_type == BRANCH_RETURN)
             return_address_stack.pop_back();
