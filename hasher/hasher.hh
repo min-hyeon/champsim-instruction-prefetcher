@@ -21,6 +21,9 @@
 #define LOG2_ST_SET 11
 #define ST_WAY 8
 
+#define RAS_ENTRY 4
+#define BHT_ENTRY 50
+
 using namespace std;
 
 // SIGNATURE BLOCK
