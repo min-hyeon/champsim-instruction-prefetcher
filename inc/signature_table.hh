@@ -6,7 +6,7 @@
 #include <iostream>
 #include <list>
 
-#define HASHER_DEBUG_PRINT
+//#define HASHER_DEBUG_PRINT
 #ifdef HASHER_DEBUG_PRINT
 #define HDP(x) x
 #else
@@ -30,9 +30,9 @@ public:
     uint64_t tag_;
     uint32_t lru_;
 
-    list<uint64_t> *data_;
+    list<uint64_t> data_;
 
-    SignatureTableBlock() : valid_(0), tag_(0), lru_(0), data_(NULL){};
+    SignatureTableBlock() : valid_(0), tag_(0), lru_(0), data_() {};
 };
 
 class SignatureTable
@@ -69,13 +69,13 @@ public:
         get_way(uint64_t signature, uint32_t set),
         lru_victim(uint64_t signature, uint32_t set);
 
-    list<uint64_t> *get_data(uint64_t signature);
+    list<uint64_t> get_data(uint64_t signature);
 
     void lru_update(uint32_t set, uint32_t way);
 
     uint32_t check_hit(uint64_t signature);
 
-    void handle_fill(uint64_t signature, list<uint64_t> *data);
+    void handle_fill(uint64_t signature, const list<uint64_t>& data);
 };
 
 uint32_t SignatureTable::get_set(uint64_t signature)
@@ -126,7 +126,7 @@ void SignatureTable::lru_update(uint32_t set, uint32_t way)
     block_[set][way].lru_ = 0;
 }
 
-list<uint64_t> *SignatureTable::get_data(uint64_t signature)
+list<uint64_t> SignatureTable::get_data(uint64_t signature)
 {
     uint32_t set = get_set(signature),
              way = get_way(signature, set);
@@ -150,7 +150,7 @@ uint32_t SignatureTable::check_hit(uint64_t signature)
     return way;
 }
 
-void SignatureTable::handle_fill(uint64_t signature, list<uint64_t> *data)
+void SignatureTable::handle_fill(uint64_t signature, const list<uint64_t>& data)
 {
     uint32_t set = get_set(signature),
              way = get_way(signature, set);

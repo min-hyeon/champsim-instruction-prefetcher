@@ -34,7 +34,7 @@ public:
 	void enqueue(uint64_t ip);
 	uint64_t dequeue();
 
-	list<uint64_t> *dequeue_all();
+	list<uint64_t> dequeue_all();
 };
 
 uint8_t CircularBuffer::is_full()
@@ -82,9 +82,9 @@ uint64_t CircularBuffer::dequeue()
 	return ip;
 }
 
-list<uint64_t> *CircularBuffer::dequeue_all()
+list<uint64_t> CircularBuffer::dequeue_all()
 {
-	list<uint64_t> *data = new list<uint64_t>(buffer_);
+	list<uint64_t> data = buffer_;
 
 	clear_buffer();
 

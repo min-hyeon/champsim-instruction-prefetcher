@@ -40,14 +40,14 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
         uint64_t signature = (signature_set >> (64 - LOG2_ST_SET)) | (signature_tag << LOG2_ST_SET);
         if (prev_signature != 0)
         {
-            list<uint64_t> *data = circular_buffer.dequeue_all();
+            list<uint64_t> data = circular_buffer.dequeue_all();
             signature_table.handle_fill(prev_signature, data);
 
-            if (signature_table.check_hit(signature) < ST_WAY)
+            if (signature_table.check_hit(prev_signature) < ST_WAY)
             {
-                list<uint64_t> *data = signature_table.get_data(prev_signature);
+                list<uint64_t> data = signature_table.get_data(prev_signature);
 
-                for (list<uint64_t>::iterator iter = (*data).begin(); iter != (*data).end(); iter++)
+                for (list<uint64_t>::iterator iter = data.begin(); iter != data.end(); iter++)
                     prefetch_code_line(*iter);
             }
         }
