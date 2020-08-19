@@ -6,7 +6,7 @@
 #include <iostream>
 #include <list>
 
-//#define HASHER_DEBUG_PRINT
+// #define HASHER_DEBUG_PRINT
 #ifdef HASHER_DEBUG_PRINT
 #define HDP(x) x
 #else
@@ -32,7 +32,7 @@ public:
 
     list<uint64_t> data_;
 
-    SignatureTableBlock() : valid_(0), tag_(0), lru_(0), data_() {};
+    SignatureTableBlock() : valid_(0), tag_(0), lru_(0){};
 };
 
 class SignatureTable
@@ -75,7 +75,7 @@ public:
 
     uint32_t check_hit(uint64_t signature);
 
-    void handle_fill(uint64_t signature, const list<uint64_t>& data);
+    void handle_fill(uint64_t signature, const list<uint64_t> &data);
 };
 
 uint32_t SignatureTable::get_set(uint64_t signature)
@@ -150,7 +150,7 @@ uint32_t SignatureTable::check_hit(uint64_t signature)
     return way;
 }
 
-void SignatureTable::handle_fill(uint64_t signature, const list<uint64_t>& data)
+void SignatureTable::handle_fill(uint64_t signature, const list<uint64_t> &data)
 {
     uint32_t set = get_set(signature),
              way = get_way(signature, set);

@@ -5,7 +5,7 @@
 #include <string>
 #include <list>
 
-#define BUFFER_DEGUG_PRINT
+// #define BUFFER_DEGUG_PRINT
 #ifdef BUFFER_DEGUG_PRINT
 #define BDP(x) x
 #else
@@ -52,7 +52,7 @@ void CircularBuffer::clear_buffer()
 void CircularBuffer::print_all()
 {
 	for (list<uint64_t>::iterator iter = buffer_.begin(); iter != buffer_.end(); iter++)
-		cout << hex << "0x" << *iter << endl;
+		cout << hex << "0x" << *iter << dec << endl;
 }
 
 void CircularBuffer::enqueue(uint64_t ip)
