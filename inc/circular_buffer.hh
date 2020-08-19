@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <string>
-#include <utility>
+#include <list>
 
 #define BUFFER_DEGUG_PRINT
 #ifdef BUFFER_DEGUG_PRINT
@@ -21,24 +21,11 @@ class CircularBuffer
 public:
 	const string name_;
 
-	uint64_t *buffer_;
-
-	uint32_t front_,
-		rear_,
-		count_;
+	list<uint64_t> buffer_;
 
 	uint64_t evict_;
 
-	CircularBuffer(string name)
-		: name_(name), front_(0), rear_(0), count_(0), evict_(0)
-	{
-		buffer_ = new uint64_t[BUFFER_ENTRY];
-	};
-
-	~CircularBuffer()
-	{
-		delete[] buffer_;
-	}
+	CircularBuffer(string name) : name_(name), evict_(0) {}
 
 	uint8_t is_full();
 	void clear_buffer();
@@ -47,82 +34,61 @@ public:
 	void enqueue(uint64_t ip);
 	uint64_t dequeue();
 
-	pair<uint64_t *, uint32_t> dequeue_all();
+	list<uint64_t> *dequeue_all();
 };
 
 uint8_t CircularBuffer::is_full()
 {
-	return count_ == BUFFER_ENTRY;
+	return buffer_.size() == BUFFER_ENTRY;
 }
 
 void CircularBuffer::clear_buffer()
 {
-	for (uint32_t i = 0; i < BUFFER_ENTRY; i++)
-		buffer_[i] = 0;
-
-	front_ = 0;
-	rear_ = 0;
-	count_ = 0;
+	buffer_.clear();
 
 	evict_ = 0;
 }
 
 void CircularBuffer::print_all()
 {
-	for (uint32_t i = front_; i != rear_; i = (i + 1) % BUFFER_ENTRY)
-		cout << hex << "0x" << buffer_[i] << endl;
+	for (list<uint64_t>::iterator iter = buffer_.begin(); iter != buffer_.end(); iter++)
+		cout << hex << "0x" << *iter << endl;
 }
 
 void CircularBuffer::enqueue(uint64_t ip)
 {
-	buffer_[rear_++] = ip;
-	rear_ %= BUFFER_ENTRY;
 	if (is_full())
 	{
-		front_ = (front_ + 1) % BUFFER_ENTRY;
+		buffer_.pop_front();
 		evict_++;
 	}
-	else
-		count_++;
+	buffer_.push_back(ip);
 
-	BDP(cout << "[" << name_ << "] " << __func__ << hex << " ip: 0x" << ip << dec << " index: " << ((rear_ == 0) ? BUFFER_ENTRY - 1 : rear_ - 1) << endl;
+	BDP(cout << "[" << name_ << "] " << __func__ << hex << " ip: 0x" << ip << dec << " index: " << buffer_.size() - 1 + evict_ << endl;
 		print_all(););
 }
 
 uint64_t CircularBuffer::dequeue()
 {
-	if (count_ == 0)
+	if (buffer_.size() == 0)
 		return 0;
 
-	uint64_t ip = buffer_[front_++];
-	front_ %= BUFFER_ENTRY;
-	count_--;
+	uint64_t ip = buffer_.front();
+	buffer_.pop_front();
 
-	BDP(cout << "[" << name_ << "] " << __func__ << hex << " ip: 0x" << ip << dec << " index: " << ((front_ == 0) ? BUFFER_ENTRY - 1 : front_ - 1) << endl;
+	BDP(cout << "[" << name_ << "] " << __func__ << hex << " ip: 0x" << ip << dec << " index: " << evict_ << endl;
 		print_all(););
 
 	return ip;
 }
 
-pair<uint64_t *, uint32_t> CircularBuffer::dequeue_all()
+list<uint64_t> *CircularBuffer::dequeue_all()
 {
-	uint64_t *data = is_full() ? new uint64_t[BUFFER_ENTRY] : new uint64_t[count_];
-	uint32_t data_count = count_;
-
-	if (!is_full())
-		for (uint32_t i = front_; i < rear_; i++)
-			data[i] = buffer_[i];
-	else
-	{
-		for (uint32_t i = front_; i < BUFFER_ENTRY; i++)
-			data[i - front_] = buffer_[i];
-		for (uint32_t i = 0; i < front_; i++)
-			data[i + BUFFER_ENTRY - front_] = buffer_[i];
-	}
+	list<uint64_t> *data = new list<uint64_t>(buffer_);
 
 	clear_buffer();
 
-	return pair<uint64_t *, uint32_t>(data, data_count);
+	return data;
 }
 
 #endif
