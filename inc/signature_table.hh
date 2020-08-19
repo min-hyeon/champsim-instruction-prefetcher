@@ -1,14 +1,11 @@
 #ifndef SIGNATURE_TABLE_HH
 #define SIGNATURE_TABLE_HH
 
-#include <stdio.h>
 #include <stdint.h>
-#include <assert.h>
 
 #include <iostream>
-#include <memory>
 
-// #define HASHER_DEBUG_PRINT
+#define HASHER_DEBUG_PRINT
 #ifdef HASHER_DEBUG_PRINT
 #define HDP(x) x
 #else
@@ -32,17 +29,10 @@ public:
     uint64_t tag_;
     uint32_t lru_;
 
-    shared_ptr<uint64_t[]> data_;
+    uint64_t *data_;
     size_t data_count_;
 
-    SignatureTableBlock()
-    {
-        valid_ = 0;
-        tag_ = 0;
-        lru_ = 0;
-
-        data_count_ = 0;
-    };
+    SignatureTableBlock() : valid_(0), tag_(0), lru_(0), data_(NULL), data_count_(0){};
 };
 
 class SignatureTable
@@ -79,14 +69,14 @@ public:
         get_way(uint64_t signature, uint32_t set),
         lru_victim(uint64_t signature, uint32_t set);
 
-    shared_ptr<uint64_t[]> get_data(uint64_t signature);
+    uint64_t *get_data(uint64_t signature);
     size_t get_data_count(uint64_t signature);
 
     void lru_update(uint32_t set, uint32_t way);
 
     uint32_t check_hit(uint64_t signature);
 
-    void handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data, size_t data_count);
+    void handle_fill(uint64_t signature, uint64_t *data, size_t data_count);
 };
 
 uint32_t SignatureTable::get_set(uint64_t signature)
@@ -99,29 +89,34 @@ uint32_t SignatureTable::get_way(uint64_t signature, uint32_t set)
     for (uint32_t way = 0; way < ST_WAY; way++)
         if (block_[set][way].valid_ && block_[set][way].tag_ == (signature >> LOG2_ST_SET))
             return way;
+
     return ST_WAY;
 }
 
 uint32_t SignatureTable::lru_victim(uint64_t signature, uint32_t set)
 {
-    for (uint32_t way = 0; way < ST_WAY; way++)
+    uint32_t way;
+
+    for (way = 0; way < ST_WAY; way++)
         if (block_[set][way].valid_ == false)
         {
             HDP(cout << "[" << name_ << "] " << __func__ << " invalid set: " << set << " way: " << way << " lru: " << block_[set][way].lru_;
-                cout << hex << " signature: 0x" << signature << " victim tag: 0x" << block_[set][way].tag_ << " data: 0x" << block_[set][way].data_;);
-            return way;
+                cout << hex << " signature: 0x" << signature << " victim tag: 0x" << block_[set][way].tag_ << " data: 0x" << block_[set][way].data_ << endl;);
+
+            break;
         }
 
-    for (uint32_t way = 0; way < ST_WAY; way++)
-        if (block_[set][way].lru_ == ST_WAY - 1)
-        {
-            HDP(cout << "[" << name_ << "] " << __func__ << " replace set: " << set << " way: " << way << " lru: " << block_[set][way].lru_;
-                cout << hex << " signature: 0x" << signature << " victim tag: 0x" << block_[set][way].tag_ << " data: 0x" << block_[set][way].data_;);
-            return way;
-        }
+    if (way == ST_WAY)
+        for (way = 0; way < ST_WAY; way++)
+            if (block_[set][way].lru_ == ST_WAY - 1)
+            {
+                HDP(cout << "[" << name_ << "] " << __func__ << " replace set: " << set << " way: " << way << " lru: " << block_[set][way].lru_;
+                    cout << hex << " signature: 0x" << signature << " victim tag: 0x" << block_[set][way].tag_ << " data: 0x" << block_[set][way].data_ << endl;);
 
-    cerr << "[" << name_ << "] " << __func__ << " no victim! set: " << set << endl;
-    assert(0);
+                break;
+            }
+
+    return way;
 }
 
 void SignatureTable::lru_update(uint32_t set, uint32_t way)
@@ -132,7 +127,7 @@ void SignatureTable::lru_update(uint32_t set, uint32_t way)
     block_[set][way].lru_ = 0;
 }
 
-shared_ptr<uint64_t[]> SignatureTable::get_data(uint64_t signature)
+uint64_t *SignatureTable::get_data(uint64_t signature)
 {
     uint32_t set = get_set(signature),
              way = get_way(signature, set);
@@ -150,28 +145,21 @@ size_t SignatureTable::get_data_count(uint64_t signature)
 
 uint32_t SignatureTable::check_hit(uint64_t signature)
 {
-    uint32_t set = get_set(signature);
-
-    if (set > ST_SET)
-    {
-        cerr << "[" << name_ << "] " << __func__ << " invalid set index: " << set << " NUM_SET: " << ST_SET;
-        assert(0);
-    }
-
-    uint32_t way = get_way(signature, set);
+    uint32_t set = get_set(signature),
+             way = get_way(signature, set);
 
     if (way < ST_WAY)
     {
-        HDP(cout << "[" << name_ << "] " << __func__ << hex << " signature: 0x" << signature << " tag: 0x" << block_[set][way].tag_ << " data: 0x" << block_[set][way].data_;
-            cout << dec << " set: " << set << " way: " << way << " lru: " << block_[set][way].lru_;);
+        HDP(cout << "[" << name_ << "] " << __func__ << hex << " hit! signature: 0x" << signature << " tag: 0x" << block_[set][way].tag_ << " data: 0x" << block_[set][way].data_;
+            cout << dec << " set: " << set << " way: " << way << " lru: " << block_[set][way].lru_ << endl;);
     }
     else
-        HDP(cout << "[" << name_ << "] " << __func__ << hex << " signature: 0x" << signature << dec << " no match! set: " << set << endl;);
+        HDP(cout << "[" << name_ << "] " << __func__ << hex << " miss! signature: 0x" << signature << dec << " set: " << set << endl;);
 
     return way;
 }
 
-void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data, size_t data_count)
+void SignatureTable::handle_fill(uint64_t signature, uint64_t *data, size_t data_count)
 {
     uint32_t set = get_set(signature),
              way = get_way(signature, set);
@@ -183,8 +171,8 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data
 
         hit_++;
 
-        HDP(cout << "[" << name_ << "] " << __func__ << hex << " signature: 0x" << signature << " tag: 0x" << block_[set][way].tag_ << " data: 0x" << block_[set][way].data_;
-            cout << dec << " hit! set: " << set << " way: " << way << " lru: " << block_[set][way].lru_;);
+        HDP(cout << "[" << name_ << "] " << __func__ << hex << " hit! signature: 0x" << signature << " tag: 0x" << block_[set][way].tag_ << " data: 0x" << block_[set][way].data_;
+            cout << dec << " hit! set: " << set << " way: " << way << " lru: " << block_[set][way].lru_ << endl;);
     }
     else
     {
@@ -198,7 +186,7 @@ void SignatureTable::handle_fill(uint64_t signature, shared_ptr<uint64_t[]> data
 
         miss_++;
 
-        HDP(cout << "[" << name_ << "] " << __func__ << hex << " signature: 0x" << signature << dec << " miss! set: " << set << endl;);
+        HDP(cout << "[" << name_ << "] " << __func__ << hex << " miss! signature: 0x" << signature << dec << " set: " << set << endl;);
     }
     access_++;
 }

@@ -8,7 +8,7 @@ SignatureTable signature_table("SIGNATURE_TABLE", ST_SET, ST_WAY, ST_SET *ST_WAY
 list<uint64_t> return_address_stack;
 list<uint64_t> branch_history_table;
 uint64_t prev_signature = 0;
-CB::CircularBuffer<uint64_t> circular_buffer;
+CircularBuffer circular_buffer("CIRCULAR_BUFFER");
 
 void O3_CPU::l1i_prefetcher_initialize()
 {
@@ -39,7 +39,19 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
 
         uint64_t signature = (signature_set >> (64 - LOG2_ST_SET)) | (signature_tag << LOG2_ST_SET);
         if (prev_signature != 0)
-            signature_table.handle_fill(prev_signature, circular_buffer.dequeue_all().first, circular_buffer.dequeue_all().second);
+        {
+            pair<uint64_t *, uint32_t> buffer = circular_buffer.dequeue_all();
+            signature_table.handle_fill(prev_signature, buffer.first, buffer.second);
+        }
+        if (signature_table.check_hit(signature) < ST_WAY)
+        {
+            uint64_t *data = signature_table.get_data(signature);
+            size_t data_count = signature_table.get_data_count(signature);
+
+cout << "branch_operate " << data_count << endl;
+            for (uint32_t i = 0; i < data_count; i++)
+                prefetch_code_line(data[i]);
+        }
         prev_signature = signature;
 
         if (branch_type == BRANCH_RETURN && !return_address_stack.empty())
@@ -57,7 +69,7 @@ void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uin
 
 void O3_CPU::l1i_prefetcher_cache_operate(uint64_t v_addr, uint8_t cache_hit, uint8_t prefetch_hit)
 {
-    if (cache_hit == 0)
+    if (!cache_hit)
         circular_buffer.enqueue(v_addr);
 }
 
