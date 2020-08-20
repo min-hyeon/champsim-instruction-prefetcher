@@ -5,7 +5,7 @@
 #include <string>
 #include <list>
 
-// #define BUFFER_DEGUG_PRINT
+//#define BUFFER_DEGUG_PRINT
 #ifdef BUFFER_DEGUG_PRINT
 #define BDP(x) x
 #else
@@ -39,7 +39,7 @@ public:
 
 uint8_t CircularBuffer::is_full()
 {
-	return buffer_.size() == BUFFER_ENTRY;
+	return buffer_.size() >= BUFFER_ENTRY;
 }
 
 void CircularBuffer::clear_buffer()

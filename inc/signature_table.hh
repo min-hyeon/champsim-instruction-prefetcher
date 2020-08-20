@@ -17,7 +17,7 @@
 #define LOG2_ST_SET 11
 #define ST_WAY 8
 
-#define RAS_ENTRY 20
+#define RAS_ENTRY 2000
 #define RAS_TOP_N_ENTRY 4
 #define BHT_ENTRY 50
 

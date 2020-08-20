@@ -1,6 +1,5 @@
-/*
-#ifndef CIRCULAR_BUFFER_HH
-#define CIRCULAR_BUFFER_HH
+#ifndef CIRCULAR_BUFFER_TEMP_HH
+#define CIRCULAR_BUFFER_TEMP_HH
 
 #include <memory>
 #include <iostream>
@@ -20,7 +19,7 @@ namespace CB
     class CircularBuffer
     {
     private:
-        std::shared_ptr<T[]> buffer_;
+        T* buffer_;
 
         size_t front_ = 0;
         size_t rear_ = 0;
@@ -28,7 +27,7 @@ namespace CB
         int num_of_evict_ = 0;
 
     public:
-        CircularBuffer<T>() : buffer_(std::shared_ptr<T[]>(new T[MAX_BUFFER_SIZE])){};
+        CircularBuffer<T>() : buffer_(new T[MAX_BUFFER_SIZE]){};
 
         void enqueue(T new_entry)
         {
@@ -57,9 +56,11 @@ namespace CB
             return return_entry;
         }
 
-        std::pair<std::shared_ptr<T[]>, size_t> dequeue_all()
+        std::pair<T*, size_t> dequeue_all()
         {
-            std::shared_ptr<T[]> return_ptr(new T[MAX_BUFFER_SIZE]);
+            size_t return_num_of_entry = is_full() ? MAX_BUFFER_SIZE : num_ % MAX_BUFFER_SIZE;
+            T* return_ptr(new T[return_num_of_entry]);
+            
             if (front_ == 0 && !is_full())
             {
                 for (size_t i = 0; i < rear_; i++)
@@ -84,7 +85,6 @@ namespace CB
                         std::cout << "[DEQUEUE] 0x" << buffer_[i] << " from index " << i << std::endl;)
                 }
             }
-            size_t return_num_of_entry = is_full() ? MAX_BUFFER_SIZE : num_ % MAX_BUFFER_SIZE;
             clear_buffer();
             return std::make_pair(return_ptr, return_num_of_entry);
         }
@@ -114,4 +114,4 @@ namespace CB
 } // namespace CB
 
 #endif
-*/
+

@@ -1,0 +1,84 @@
+#include "ooo_cpu.h"
+#include "signature_table.hh"
+#include "circular_buffer_temp.hh"
+#include <map>
+#include <list>
+
+CB::CircularBuffer<uint64_t> circular_buffer;
+std::map<uint64_t, std::pair<uint64_t*, size_t>> signature_table;
+std::list<uint64_t> return_address_stack;
+uint64_t signature = 0;
+uint64_t prev_signature = 0;
+
+void O3_CPU::l1i_prefetcher_initialize()
+{
+    
+}
+
+void O3_CPU::l1i_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uint64_t branch_target)
+{
+    if(branch_type == NOT_BRANCH)
+        return;
+    //if(branch_type == BRANCH_DIRECT_CALL || branch_type == BRANCH_INDIRECT_CALL || branch_type == BRANCH_RETURN)
+    else
+    {
+        /*if(branch_type == BRANCH_DIRECT_CALL || branch_type == BRANCH_INDIRECT_CALL)
+        {
+            return_address_stack.push_back(ip);
+            if (return_address_stack.size() > RAS_ENTRY)
+                return_address_stack.pop_front();
+        }
+        else if(branch_type == BRANCH_RETURN && !return_address_stack.empty())
+        {
+            return_address_stack.pop_back();
+        }*/
+
+        if(prev_signature == 0)
+        {
+            signature = ip;
+        }
+        else
+        {   
+            /*std::list<uint64_t>::reverse_iterator it = return_address_stack.rbegin();
+            for(auto i = 0; i < RAS_TOP_N_ENTRY; i++)
+            {
+                if(it != return_address_stack.rend())
+                    signature ^= *it++;
+                else
+                    break;
+            }*/
+            signature = ip;
+            signature_table.insert(std::make_pair(prev_signature, circular_buffer.dequeue_all()));
+
+            auto it2 = signature_table.find(signature);
+            if(it2 != signature_table.end())
+            {
+                for(size_t i = 0; i < it2->second.second; i++)
+                {
+                    prefetch_code_line(it2->second.first[i]);
+                }
+            }
+        }
+        prev_signature = signature;
+    }
+}
+
+void O3_CPU::l1i_prefetcher_cache_operate(uint64_t v_addr, uint8_t cache_hit, uint8_t prefetch_hit)
+{
+    if(cache_hit == 0)
+        circular_buffer.enqueue(v_addr);
+}
+
+void O3_CPU::l1i_prefetcher_cycle_operate()
+{
+}
+
+void O3_CPU::l1i_prefetcher_cache_fill(uint64_t v_addr, uint32_t set, uint32_t way, uint8_t prefetch, uint64_t evicted_v_addr)
+{
+    
+}
+
+void O3_CPU::l1i_prefetcher_final_stats()
+{
+    
+}

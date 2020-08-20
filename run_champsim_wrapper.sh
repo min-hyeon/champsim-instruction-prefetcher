@@ -23,7 +23,7 @@ CONTR_DIR=$PWD/sim/control
 EXPER_DIR=$PWD/sim/experiment
 RESLT_DIR=$PWD/sim/result
 
-rm -r ${RESLT_DIR}
+#rm -r ${RESLT_DIR}
 
 if [ -z $PWD/sim ] || [ ! -d $PWD/sim ] ; then
 	mkdir -p $PWD/sim
