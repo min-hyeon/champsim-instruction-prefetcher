@@ -102,7 +102,7 @@ do
 					printf "$(RUN_COMMAND ${BINARY} ${TRACE}.champsimtrace.xz)"
 					bash $(RUN_COMMAND ${BINARY} ${TRACE}.champsimtrace.xz)
 					cp $PWD/results_${N_SIM}M/${TRACE}.champsimtrace.xz-${BINARY}${OPTION}.txt ${RESULT_DIR}/${BINARY}-${TRACE}-${N_SIM}M.stats
-					cp $PWD/results_${N_SIM}M/${TRACE}.champsimtrace.xz-${BINARY}${OPTION}.txt ${RESULT_FORMATTED_DIR}/${BINARY}-${TRACE}-${N_SIM}M.stats
+					cp $PWD/champsim-stats.json ${RESULT_FORMATTED_DIR}/${BINARY}-${TRACE}-${N_SIM}M.stats
 				fi
 			fi
 		done
@@ -116,3 +116,4 @@ done
 printf "\n"
 
 rm -rf $PWD/results_${N_SIM}M
+rm champsim-stats.json
