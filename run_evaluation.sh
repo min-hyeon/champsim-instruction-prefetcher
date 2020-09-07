@@ -64,24 +64,24 @@ NORMAL=$(tput sgr0)
 printf "${CYAN}${BOLD}Generating executables for evaluation...\n${NORMAL}"
 for FILE in ${EVAL_SOURCE_DIR}/*.l1i_pref
 do
-	[ -f "$FILE" ] || continue
-	cp ${FILE} prefetcher/
-	PREF=`basename ${FILE} .l1i_pref`
-	if [ -f $PWD/bin/$(BINARY_NAME ${PREF}) ] ; then
-		printf "$(BUILD_COMMAND ${PREF}) ${BOLD}(Skipped)${NORMAL}\n"
-	else
-		printf "$(BUILD_COMMAND ${PREF})\n"
-		bash $(BUILD_COMMAND ${PREF})
-	fi
-	rm -f $PWD/prefetcher/${PREF}.l1i_pref
+    [ -f "$FILE" ] || continue
+    cp ${FILE} prefetcher/
+    PREF=`basename ${FILE} .l1i_pref`
+    if [ -f $PWD/bin/$(BINARY_NAME ${PREF}) ] ; then
+        printf "$(BUILD_COMMAND ${PREF}) ${BOLD}(Skipped)${NORMAL}\n"
+    else
+        printf "$(BUILD_COMMAND ${PREF})\n"
+        bash $(BUILD_COMMAND ${PREF})
+    fi
+    rm -f $PWD/prefetcher/${PREF}.l1i_pref
 done
 
 if [ -f $PWD/bin/$(BINARY_NAME baseline) ] ; then
-	printf "$(BUILD_COMMAND no) ${BOLD}(Skipped)${NORMAL}\n"
+    printf "$(BUILD_COMMAND no) ${BOLD}(Skipped)${NORMAL}\n"
 else
-	printf "$(BUILD_COMMAND no)\n"
-	bash $(BUILD_COMMAND no)
-	mv $PWD/bin/$(BINARY_NAME no) $PWD/bin/$(BINARY_NAME baseline)
+    printf "$(BUILD_COMMAND no)\n"
+    bash $(BUILD_COMMAND no)
+    mv $PWD/bin/$(BINARY_NAME no) $PWD/bin/$(BINARY_NAME baseline)
 fi
 
 function PROGRESS_BAR(){
@@ -97,32 +97,32 @@ function PROGRESS_BAR(){
 printf "${CYAN}${BOLD}Evaluating each executable on traces in ${TRACE_DIR}...${NORMAL}"
 for BINARY in $PWD/bin/*
 do
-	[ -f "$BINARY" ] || continue
-	BINARY=`basename ${BINARY}`
-	printf "\n${BOLD}Simulate ${BINARY}...\n${NORMAL}"
+    [ -f "$BINARY" ] || continue
+    BINARY=`basename ${BINARY}`
+    printf "\n${BOLD}Simulate ${BINARY}...\n${NORMAL}"
     ((COUNT=1))
-	for TRACE in ${TRACE_DIR}/*
-	do
+    for TRACE in ${TRACE_DIR}/*
+    do
         printf "$(PROGRESS_BAR ${TRACE_NUM} ${COUNT})\n"
-		TRACE=`basename ${TRACE} .champsimtrace.xz`
-		for TYPE in ${TRACE_TYPE[@]}
-		do
-			if [[ ${TRACE} == ${TYPE}* ]] ; then
-				RESULT_DIR=${EVAL_STATS_DIR}/${BINARY}/${TYPE}
-				RESULT_FORMATTED_DIR=${EVAL_STATS_FORMATTED_DIR}/${BINARY}/${TYPE}
-				mkdir -p ${RESULT_DIR}
-				mkdir -p ${RESULT_FORMATTED_DIR}
-				RESULT=$(STATS_NAME ${BINARY} ${TRACE})
-				if [ -f ${RESULT_DIR}/${RESULT} ] && [ -f ${RESULT_FORMATTED_DIR}/${RESULT} ] ; then
-					printf "$(RUN_COMMAND ${BINARY} ${TRACE}.champsimtrace.xz) ${BOLD}(Skipped)${NORMAL}"
-				else
-					printf "$(RUN_COMMAND ${BINARY} ${TRACE}.champsimtrace.xz)"
-					bash $(RUN_COMMAND ${BINARY} ${TRACE}.champsimtrace.xz)
-					cp $PWD/results_${N_SIM}M/${TRACE}.champsimtrace.xz-${BINARY}${OPTION}.txt ${RESULT_DIR}/${RESULT}
-					cp $PWD/champsim-stats.json ${RESULT_FORMATTED_DIR}/${RESULT}
-				fi
-			fi
-		done
+        TRACE=`basename ${TRACE} .champsimtrace.xz`
+        for TYPE in ${TRACE_TYPE[@]}
+        do
+            if [[ ${TRACE} == ${TYPE}* ]] ; then
+                RESULT_DIR=${EVAL_STATS_DIR}/${BINARY}/${TYPE}
+                RESULT_FORMATTED_DIR=${EVAL_STATS_FORMATTED_DIR}/${BINARY}/${TYPE}
+                mkdir -p ${RESULT_DIR}
+                mkdir -p ${RESULT_FORMATTED_DIR}
+                RESULT=$(STATS_NAME ${BINARY} ${TRACE})
+                if [ -f ${RESULT_DIR}/${RESULT} ] && [ -f ${RESULT_FORMATTED_DIR}/${RESULT} ] ; then
+                    printf "$(RUN_COMMAND ${BINARY} ${TRACE}.champsimtrace.xz) ${BOLD}(Skipped)${NORMAL}"
+                else
+                    printf "$(RUN_COMMAND ${BINARY} ${TRACE}.champsimtrace.xz)"
+                    bash $(RUN_COMMAND ${BINARY} ${TRACE}.champsimtrace.xz)
+                    cp $PWD/results_${N_SIM}M/${TRACE}.champsimtrace.xz-${BINARY}${OPTION}.txt ${RESULT_DIR}/${RESULT}
+                    cp $PWD/champsim-stats.json ${RESULT_FORMATTED_DIR}/${RESULT}
+                fi
+            fi
+        done
         ((COUNT++))
         tput el
         if [ ! "$COUNT" -gt $TRACE_NUM ]; then
